@@ -301,7 +301,7 @@ class MainActivity : Activity() {
     private fun loadSponsors() {
         Thread {
             val cfg = runCatching {
-                val c = java.net.URL("https://cdn.jsdelivr.net/gh/fifn1/arribha-packs@main/sponsors.json").openConnection() as java.net.HttpURLConnection
+                val c = java.net.URL("https://arribha-intake.d-fifn1.workers.dev/sponsors").openConnection() as java.net.HttpURLConnection
                 c.setRequestProperty("User-Agent", "arribha-app/1"); c.connectTimeout = 4000; c.readTimeout = 6000
                 org.json.JSONObject(c.inputStream.bufferedReader().readText())
             }.getOrNull()

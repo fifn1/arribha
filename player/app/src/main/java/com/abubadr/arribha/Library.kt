@@ -11,73 +11,55 @@ import java.util.concurrent.Executors
 
 /**
  * The shared professional library, filled automatically for every game:
- *  - looks a line up by its fingerprint in small files (lib/<2 hex>.json) served free by jsDelivr, cached on the TV;
+ *  - a line is looked up by its fingerprint on our server, one sentence at a time (the library is never listed,
+ *    so nobody can copy it); answers are kept on the TV, so a line seen once is instant from then on;
  *  - lines that have no professional translation yet are sent (in the background, never blocking play)
  *    to the intake; a free AI translates them within about an hour, and from then on every player gets them.
  */
 object Library {
-    private const val CONFIG = "https://cdn.jsdelivr.net/gh/fifn1/arribha-packs@main/config.json"
-    @Volatile private var intake = "https://arribha-intake.d-fifn1.workers.dev/submit"
-    @Volatile private var lib = "https://cdn.jsdelivr.net/gh/fifn1/arribha-packs@main/lib/"
+    private const val SERVER = "https://arribha-intake.d-fifn1.workers.dev"
+    @Volatile private var intake = "$SERVER/submit"
     @Volatile private var sending = true
 
     private val net = Executors.newSingleThreadExecutor { r -> Thread(r, "arribha-net").apply { priority = Thread.MIN_PRIORITY } }
-    private val shards = HashMap<String, Map<String, String>>()
-    private val asked = HashSet<String>()
+    private val known = HashMap<String, String>()          // fingerprint -> translation, kept on the TV
+    private val missing = HashMap<String, Long>()          // fingerprint -> when we last heard "not yet"
+    @Volatile private var offlineUntil = 0L
     private val queue = ArrayList<Pair<String, String>>()
     private val queued = HashSet<String>()
     private var lastSend = 0L
-    private lateinit var dir: File
-
-    /** each language has its own library folder (lib = Arabic, lib-tr = Turkish) */
-    private val libUrl get() = if (L.isTr) lib.replace("/lib/", "/lib-tr/") else lib
+    private lateinit var file: File
 
     fun init(ctx: Context) {
-        if (::dir.isInitialized) return
-        dir = File(ctx.filesDir, if (L.isTr) "lib-tr" else "lib").apply { mkdirs() }
+        if (::file.isInitialized) return
+        file = File(ctx.filesDir, if (L.isTr) "lib-tr.json" else "lib-ar.json")
+        runCatching { val o = JSONObject(file.readText()); o.keys().forEach { known[it] = o.getString(it) } }
         val prefs = ctx.getSharedPreferences("arribha", Context.MODE_PRIVATE)
         if (!prefs.contains("sample_roll")) prefs.edit().putFloat("sample_roll", Math.random().toFloat()).apply()
         val roll = prefs.getFloat("sample_roll", 0f)
         net.execute {
             runCatching {
-                val c = JSONObject(get(CONFIG))
-                intake = c.optString("intake", intake); lib = c.optString("lib", lib)
+                val c = JSONObject(get("$SERVER/config", 4000))
+                intake = c.optString("intake", intake)
                 sending = roll < c.optDouble("sample", 1.0)         // only a sample of players send new lines
-                Log.i("Arribha", "library ready, sending new lines: $sending")
-                // download the whole library now, so known lines are instant from the first time they appear
-                val idx = org.json.JSONArray(get("${libUrl}index.json"))
-                for (i in 0 until idx.length()) {
-                    val sh = idx.getString(i)
-                    val f = File(dir, "$sh.json")
-                    if (f.exists() && System.currentTimeMillis() - f.lastModified() < 6 * 3600_000L) { runCatching { load(sh, f.readText()) }; continue }
-                    runCatching { val txt = get("$libUrl$sh.json"); f.writeText(txt); load(sh, txt) }
-                }
-                Log.i("Arribha", "library prefetched: ${idx.length()} files")
+                Log.i("Arribha", "library ready (${known.size} lines on TV), sending new lines: $sending")
             }
         }
     }
 
-    /** Professional translation from the shared library, or null (then fetched in the background for next time). */
+    /** Professional translation from the shared library, or null. Asks the server once per new sentence (short wait). */
     fun find(hash: String): String? {
-        val sh = hash.take(2)
-        synchronized(shards) { shards[sh]?.let { return it[hash] } }
-        val f = File(dir, "$sh.json")
-        val fresh = f.exists() && System.currentTimeMillis() - f.lastModified() < 6 * 3600_000L
-        if (f.exists()) runCatching { load(sh, f.readText()) }
-        if (!fresh && synchronized(asked) { asked.add(sh) }) net.execute {
-            runCatching {
-                val t = get("$libUrl$sh.json")
-                f.writeText(t); load(sh, t)
-            }.onFailure { f.writeText(f.takeIf { it.exists() }?.readText() ?: "{}") }   // none yet: try again in 6 h
-        }
-        synchronized(shards) { return shards[sh]?.get(hash) }
-    }
-
-    private fun load(sh: String, text: String) {
-        val o = JSONObject(text)
-        val m = HashMap<String, String>()
-        o.keys().forEach { m[it] = o.getString(it) }
-        synchronized(shards) { shards[sh] = m }
+        synchronized(known) { known[hash]?.let { return it } }
+        val now = System.currentTimeMillis()
+        synchronized(missing) { missing[hash]?.let { if (now - it < 2 * 3600_000L) return null } }
+        if (now < offlineUntil || !::file.isInitialized) return null
+        val t = runCatching {
+            JSONObject(get("$SERVER/lib?h=$hash" + if (L.isTr) "&l=tr" else "", 700)).optString("t", "")
+        }.getOrElse { offlineUntil = now + 60_000; return null }      // no internet: don't wait again for a minute
+        if (t.isEmpty()) { synchronized(missing) { missing[hash] = now }; return null }
+        synchronized(known) { known[hash] = t }
+        net.execute { runCatching { synchronized(known) { file.writeText(JSONObject(known as Map<*, *>).toString()) } } }
+        return t
     }
 
     /** A line we had to machine-translate: send it so it gets a professional translation for everyone. */
@@ -99,7 +81,7 @@ object Library {
             val batch = ArrayList(queue); queue.clear()
             net.execute {
                 runCatching {
-                    // by now the library files are downloaded: drop lines that already have a professional translation
+                    // drop lines that got a professional translation meanwhile
                     batch.removeAll { (h, _) -> find(h) != null }
                     if (batch.isEmpty()) return@runCatching
                     val arr = JSONArray()
@@ -110,9 +92,9 @@ object Library {
         }
     }
 
-    private fun get(url: String): String {
+    private fun get(url: String, ms: Int): String {
         val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = 4000; c.readTimeout = 8000
+        c.connectTimeout = ms; c.readTimeout = ms
         c.setRequestProperty("User-Agent", "arribha-app/1")
         if (c.responseCode != 200) throw IllegalStateException("http ${c.responseCode}")
         return c.inputStream.bufferedReader().use { it.readText() }

@@ -20,7 +20,7 @@ import java.security.MessageDigest
  */
 object GamePacks {
     /** Where packs are published. Set to the GitHub repository once it exists. */
-    var baseUrl = "https://raw.githubusercontent.com/fifn1/arribha-packs/main/"
+    var baseUrl = "https://arribha-intake.d-fifn1.workers.dev/games/"
 
     private class Game(val id: String, val name: String, val fp: Set<String>, val file: String)
     private class Pack(val id: String, val game: String, val lines: Map<String, String>, val names: Map<String, String>)
