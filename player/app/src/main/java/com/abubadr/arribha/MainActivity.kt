@@ -53,6 +53,8 @@ class MainActivity : Activity() {
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
         store = Store(this)
+        Licensing.init(this)
+        Licensing.onChange = { ui.post { refresh() } }
         if (!store.welcomed) startActivity(Intent(this, WelcomeActivity::class.java))
         else Updater.check(this)
 
@@ -80,7 +82,9 @@ class MainActivity : Activity() {
         }
         col.addView(padBtn, lp(18))
         playBtn = button("ابدأ اللعب", true).also { col.addView(it, LinearLayout.LayoutParams(620, -2).apply { topMargin = 34; gravity = Gravity.CENTER_HORIZONTAL }) }
-        playBtn.setOnClickListener { play() }
+        playBtn.setOnClickListener { if (Licensing.canPlay) play() else paywall() }
+
+        licenseLine = text("", 15f, Color.rgb(143, 163, 199)).also { col.addView(it, lp(10)) }
 
         // --- one-time linking ---
         linkBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL }
@@ -131,6 +135,12 @@ class MainActivity : Activity() {
         refreshSettings()
         for (b in listOf(tBtn, aBtn, sBtn)) settingsBox.addView(b, LinearLayout.LayoutParams(-2, -2).apply { setMargins(10, 0, 10, 0) })
         col.addView(settingsBox, lp(30))
+
+        // --- sponsors: three tiles, filled from sponsors.json on GitHub ---
+        col.addView(text("رعاة", 12f, Color.rgb(96, 110, 138)), lp(26))
+        sponsorRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
+        col.addView(sponsorRow, lp(6))
+        loadSponsors()
 
         // --- footer: quiet details ---
         deviceLine = text("", 13f, Color.rgb(96, 110, 138))
@@ -188,6 +198,7 @@ class MainActivity : Activity() {
     }
 
     private var titleViews: List<View> = emptyList()
+    private lateinit var licenseLine: TextView
     private lateinit var padBtn: Button
     /** Opens the "add controller" screen on any Android TV / Google TV / Fire TV, trying the known screens in order. */
     private fun openPairing() {
@@ -203,6 +214,61 @@ class MainActivity : Activity() {
             if (i.resolveActivity(packageManager) == null) continue
             if (runCatching { startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess) return
         }
+    }
+
+    private lateinit var sponsorRow: LinearLayout
+
+    private fun paywall() {
+        val price = Licensing.price ?: "9.99 ر.س"
+        android.app.AlertDialog.Builder(this)
+            .setTitle("فعّل عرّبها مدى الحياة")
+            .setMessage("انتهت تجربتك المجانية (3 ساعات لعب).\n\nادفع مرة وحدة بس $price وتلعب بالعربي مدى الحياة، مع كل التحديثات.\n\nالدفع آمن عن طريق Google Play: بالبطاقة، أو رصيد الجوال، أو بطاقات Google Play، حسب المتاح في بلدك.")
+            .setPositiveButton("شراء $price") { _, _ ->
+                if (!Licensing.buy(this)) android.widget.Toast.makeText(this, "متجر Google Play غير جاهز، جرّب بعد شوي", android.widget.Toast.LENGTH_LONG).show()
+            }
+            .setNegativeButton("لاحقًا", null).show()
+    }
+
+    private fun loadSponsors() {
+        Thread {
+            val cfg = runCatching {
+                val c = java.net.URL("https://cdn.jsdelivr.net/gh/fifn1/arribha-packs@main/sponsors.json").openConnection() as java.net.HttpURLConnection
+                c.setRequestProperty("User-Agent", "arribha-app/1"); c.connectTimeout = 4000; c.readTimeout = 6000
+                org.json.JSONObject(c.inputStream.bufferedReader().readText())
+            }.getOrNull()
+            val adUrl = cfg?.optString("advertise_url", "") ?: ""
+            val slots = (0 until 3).map { i -> cfg?.optJSONArray("slots")?.optJSONObject(i) }
+            val images = slots.map { s ->
+                val img = s?.optString("image", "") ?: ""
+                if (img.startsWith("https://")) runCatching { android.graphics.BitmapFactory.decodeStream(java.net.URL(img).openStream()) }.getOrNull() else null
+            }
+            ui.post {
+                sponsorRow.removeAllViews()
+                for (i in 0 until 3) {
+                    val s = slots[i]; val name = s?.optString("name", "") ?: ""; val url = s?.optString("url", "") ?: ""
+                    val tile = android.widget.FrameLayout(this).apply {
+                        isFocusable = true
+                        val bg = GradientDrawable().apply { cornerRadius = 22f; setColor(Color.argb(30, 255, 255, 255)) }
+                        background = bg; clipToOutline = true
+                        if (images[i] != null) addView(android.widget.ImageView(context).apply {
+                            setImageBitmap(images[i]); scaleType = android.widget.ImageView.ScaleType.CENTER_CROP })
+                        else addView(text(if (name.isNotEmpty()) name else "أعلن هنا", 15f, Color.rgb(143, 163, 199)),
+                            android.widget.FrameLayout.LayoutParams(-1, -1))
+                        setOnFocusChangeListener { v, f -> bg.setStroke(if (f) 4 else 0, Color.WHITE); v.animate().scaleX(if (f) 1.05f else 1f).scaleY(if (f) 1.05f else 1f).setDuration(120).start() }
+                        setOnClickListener { showQr(if (url.startsWith("https://")) url else adUrl, if (url.isNotEmpty()) name else "أعلن في عرّبها") }
+                    }
+                    sponsorRow.addView(tile, LinearLayout.LayoutParams(250, 140).apply { setMargins(12, 0, 12, 0) })
+                }
+            }
+        }.start()
+    }
+
+    /** sponsor links open on the phone: scanning is easier than a TV browser */
+    private fun showQr(url: String, title: String) {
+        if (url.isEmpty()) return
+        val img = android.widget.ImageView(this).apply { setImageBitmap(qr(url, 360)); setPadding(30, 30, 30, 30) }
+        android.app.AlertDialog.Builder(this).setTitle(title).setMessage("امسح الرمز بكاميرا جوالك").setView(img)
+            .setPositiveButton("تم", null).show()
     }
 
     private fun hasPad() = android.view.InputDevice.getDeviceIds().any { id ->
@@ -295,6 +361,11 @@ class MainActivity : Activity() {
         if (tierName != null) {
             val warn = if (store.tier == 0) "\n⚠️ تلفزيونك ضعيف، وممكن تنزل الفريمات حتى بدون ترجمة. الترجمة بتشتغل ببطء عشان تحافظ على السلاسة." else ""
             deviceLine.text = "1080p • 60 إطارًا • ${if (store.useHevc) "HEVC" else "H.264"} • جهاز $tierName$warn"
+        }
+        licenseLine.text = when {
+            Licensing.owned -> ""
+            Licensing.canPlay -> "تجربة مجانية: باقي ${Licensing.trialLeftSeconds / 3600} س ${(Licensing.trialLeftSeconds % 3600) / 60} د من اللعب"
+            else -> "انتهت التجربة المجانية — فعّل عرّبها مدى الحياة"
         }
         val linked = store.isLinked
         padBtn.visibility = if (linked && !hasPad()) View.VISIBLE else View.GONE

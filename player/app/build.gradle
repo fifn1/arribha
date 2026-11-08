@@ -8,9 +8,9 @@ android {
     defaultConfig {
         applicationId 'com.abubadr.arribha'
         minSdk 24
-        targetSdk 34
-        versionCode 8
-        versionName '1.0.5'
+        targetSdk 35
+        versionCode 9
+        versionName '1.1.0'
         ndk { abiFilters 'armeabi-v7a', 'arm64-v8a' }
     }
     // release signing: the key and its passwords stay outside the code (signing/keystore.properties), never on GitHub
@@ -33,4 +33,5 @@ dependencies {
     implementation 'com.google.mlkit:translate:17.0.3'
     implementation 'com.google.zxing:core:3.5.3'
     implementation 'androidx.core:core:1.13.1'
+    implementation 'com.android.billingclient:billing:7.1.1'
 }

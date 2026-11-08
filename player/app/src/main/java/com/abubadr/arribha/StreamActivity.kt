@@ -246,7 +246,18 @@ class StreamActivity : Activity() {
         }.start()
     }
 
+    /** trial clock: one minute of real play at a time */
+    private val playClock = object : Runnable {
+        override fun run() {
+            if (session == null) return
+            Licensing.addPlayed(60)
+            if (!Licensing.canPlay) say("⏳ انتهت التجربة المجانية. كمّل جولتك، وبعدها فعّل عرّبها مدى الحياة من الشاشة الرئيسية", 15000)
+            ui.postDelayed(this, 60_000)
+        }
+    }
+
     private fun disconnect() {
+        ui.removeCallbacks(playClock)
         watcher?.dispose(); watcher = null; gameName = null
         val s = session ?: return
         session = null
@@ -257,6 +268,7 @@ class StreamActivity : Activity() {
     private fun onEvent(e: Event) {
         when (e) {
             is ConnectedEvent -> {
+                ui.removeCallbacks(playClock); ui.postDelayed(playClock, 60_000)
                 health(true, null)
                 if (!hasGamepad()) say("🎮 اليدة مو موصولة بالتلفزيون: اضغط زر PS في اليدة. إذا ما اشتغلت، اربطها بالتلفزيون (Create + PS)", 12000)
                 else say(if (engine.enabled) "✅ متصل — الترجمة تشتغل داخل الألعاب بس (OK بالريموت يشغّلها ويطفيها)" else "✅ متصل — الترجمة طافية", 5000)

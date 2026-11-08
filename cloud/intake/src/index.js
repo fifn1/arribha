@@ -10,6 +10,7 @@ export default {
     try {
       if (req.method === "POST" && url.pathname === "/submit") return await submit(req, env);
       if (url.pathname === "/privacy") return privacy();
+      if (req.method === "POST" && url.pathname === "/trial") return await trial(req, env);
       if (req.method === "POST" && url.pathname === "/health") return await health(req, env);
       if (url.pathname === "/alerts") {
         if (req.headers.get("authorization") !== `Bearer ${env.TOKEN}`) return new Response("no", { status: 401 });
@@ -299,4 +300,19 @@ async function underLimit(env, req, name, cap) {
   if (q && q.n >= cap) return false;
   await env.DB.prepare("INSERT INTO quota (k, n) VALUES (?, 1) ON CONFLICT(k) DO UPDATE SET n = n + 1").bind(k).run();
   return true;
+}
+
+// ---- free trial: minutes played per device, kept here so clearing the app's data or reinstalling does not restart it.
+// The id is a one-way hash made on the TV (no personal data). Time only ever goes up, by at most 10 minutes per call.
+async function trial(req, env) {
+  if (!(await underLimit(env, req, "trial", 400))) return new Response("slow down", { status: 429 });
+  const b = await req.json();
+  const id = String(b.id || "");
+  if (!/^[0-9a-f]{32}$/.test(id)) return new Response("bad", { status: 400 });
+  const add = Math.max(0, Math.min(600, Number(b.add) || 0));
+  const now = Date.now();
+  await env.DB.prepare(`INSERT INTO trial (id, used, updated) VALUES (?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET used = used + excluded.used, updated = excluded.updated`).bind(id, add, now).run();
+  const row = await env.DB.prepare("SELECT used FROM trial WHERE id = ?").bind(id).first();
+  return Response.json({ used: row.used });
 }
