@@ -214,7 +214,8 @@ input{width:100%;box-sizing:border-box;padding:14px;border-radius:14px;border:1p
 const u=document.getElementById('u'),m=document.getElementById('m');
 document.getElementById('p').onclick=async()=>{try{u.value=await navigator.clipboard.readText()}catch(e){u.focus()}};
 document.getElementById('s').onclick=async()=>{const r=await fetch('/link',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({s:'${sid}',url:u.value})});
-m.innerHTML=r.ok?'<span class="ok">${T("✓ تم. ارجع للتلفزيون", "✓ Tamam. TV'ye dön")}</span>':'${T("الرابط غير صحيح، تأكد إنك نسخته بعد تسجيل الدخول", "Bağlantı geçersiz; girişten sonra kopyaladığından emin ol")}';};
+const t=r.ok?'':await r.text();
+m.innerHTML=r.ok?'<span class="ok">${T("✓ تم. ارجع للتلفزيون", "✓ Tamam. TV'ye dön")}</span>':t==='sony'?'${T("انتهت صلاحية الدخول. اضغط «تسجيل الدخول» مرة ثانية وانسخ الرابط الجديد على طول", "Girişin süresi doldu. «Giriş yap»a tekrar bas ve yeni bağlantıyı hemen kopyala")}':'${T("الرابط غير صحيح، تأكد إنك نسخته بعد تسجيل الدخول", "Bağlantı geçersiz; girişten sonra kopyaladığından emin ol")}';};
 </script></body></html>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 }
@@ -226,8 +227,33 @@ async function linkSave(req, env) {
   let code = null;
   try { const u = new URL(String(url).trim()); if (u.hostname === "remoteplay.dl.playstation.net") code = u.searchParams.get("code"); } catch (e) {}
   if (sid.length !== 32 || !code || code.length > 64) return new Response("bad", { status: 400 });
-  await env.DB.prepare("INSERT OR REPLACE INTO links (s, code, created) VALUES (?, ?, ?)").bind(sid, code, Date.now()).run();
+  // check the sign-in with Sony now, while the code is fresh, so the phone can say at once if it failed
+  const id = await psnAccountId(code);
+  if (id === false) return new Response("sony", { status: 400 });
+  // id === null: Sony could not be reached from here, so the TV checks the code itself (old path)
+  await env.DB.prepare("INSERT OR REPLACE INTO links (s, code, created) VALUES (?, ?, ?)").bind(sid, id ? "id:" + id : code, Date.now()).run();
   return new Response("ok");
+}
+
+/** Sony sign-in code -> PSN account id (8 bytes little-endian, base64), like the app does */
+async function psnAccountId(code) {
+  try {
+    const auth = "Basic " + btoa("ba495a24-818c-472b-b12d-ff231c1b5745:mvaiZkRsAsI1IBkY");
+    const T = "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth/token";
+    const r = await fetch(T, { method: "POST", headers: { authorization: auth, "content-type": "application/x-www-form-urlencoded" },
+      body: "grant_type=authorization_code&code=" + encodeURIComponent(code) + "&redirect_uri=https://remoteplay.dl.playstation.net/remoteplay/redirect&" });
+    if (!r.ok) {   // Sony's own "this code is wrong or expired" answer is a JSON error; anything else means we could not ask
+      const e = await r.json().catch(() => null);
+      return e && e.error ? false : null;
+    }
+    const tok = (await r.json()).access_token;
+    const i = await fetch(T + "/" + encodeURIComponent(tok), { headers: { authorization: auth } });
+    if (!i.ok) return null;
+    let uid = BigInt((await i.json()).user_id);
+    const b = new Uint8Array(8);
+    for (let k = 0; k < 8; k++) { b[k] = Number(uid & 0xffn); uid >>= 8n; }
+    return btoa(String.fromCharCode(...b));
+  } catch (e) { return null; }
 }
 
 async function linkPoll(url, env) {
@@ -236,7 +262,7 @@ async function linkPoll(url, env) {
   const row = await env.DB.prepare("SELECT code FROM links WHERE s = ?").bind(sid).first();
   if (!row) return Response.json({});
   await env.DB.prepare("DELETE FROM links WHERE s = ?").bind(sid).run();
-  return Response.json({ code: row.code });
+  return Response.json(row.code.startsWith("id:") ? { id: row.code.slice(3) } : { code: row.code });
 }
 
 function privacy(tr) {

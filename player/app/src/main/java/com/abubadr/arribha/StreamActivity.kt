@@ -42,6 +42,8 @@ import kotlin.math.min
 
 /** Full-screen game stream with the Arabic translation on top. */
 class StreamActivity : Activity() {
+    companion object { @Volatile var relinkHint = false }
+    private var connected = false
     private lateinit var store: Store
     private lateinit var surfaceView: SurfaceView
     private lateinit var status: TextView
@@ -269,6 +271,7 @@ class StreamActivity : Activity() {
     private fun onEvent(e: Event) {
         when (e) {
             is ConnectedEvent -> {
+                connected = true
                 ui.removeCallbacks(playClock); ui.postDelayed(playClock, 60_000)
                 health(true, null)
                 if (!hasGamepad()) say(L.s("🎮 اليد مو موصولة بالتلفزيون: اضغط زر PS في اليد. إذا ما اشتغلت، اربطها بالتلفزيون (Create + PS)", "🎮 Kol TV'ye bağlı değil: koldaki PS tuşuna bas. Olmazsa kolu TV'ye bağla (Create + PS)"), 12000)
@@ -279,6 +282,8 @@ class StreamActivity : Activity() {
             }
             is QuitEvent -> {
                 if (e.reason.isError) health(false, e.reasonString ?: e.reason.toString())
+                // refused before the picture ever started: the PS5 may no longer accept this TV's link
+                if (e.reason.isError && !connected && e.reason.value in setOf(2, 3, 7, 9)) relinkHint = true
                 engine.stop()
                 Log.w("Arribha", "quit: ${e.reason} ${e.reasonString}")
                 val msg = if (e.reason.isError) L.s("❌ انقطع الاتصال: ${e.reasonString ?: e.reason}", "❌ Bağlantı koptu: ${e.reasonString ?: e.reason}") else L.s("انتهى اللعب", "Oyun sona erdi")

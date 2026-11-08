@@ -49,6 +49,11 @@ class MainActivity : Activity() {
     private lateinit var accountField: EditText
     private lateinit var pinField: EditText
     private lateinit var linkStatus: TextView
+    private lateinit var choicesRow: LinearLayout
+    private lateinit var signedRow: LinearLayout
+    private var linkedOnly: List<View> = emptyList()
+    private var linking = false          // a link request is running: never start a second one
+    private var linkWhenFound = false    // code typed before the PS5 showed up: link as soon as it does
 
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
@@ -93,6 +98,7 @@ class MainActivity : Activity() {
         linkBox.addView(text(L.s("ربط البلايستيشن — مرة وحدة", "PlayStation'ı bağla — tek seferlik"), 22f, Color.WHITE), lp(14))
         // two ways to sign in, side by side: on the TV, or by scanning with the phone
         val choices = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
+        choicesRow = choices
         fun card() = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
             background = GradientDrawable().apply { cornerRadius = 36f; setColor(Color.argb(28, 255, 255, 255)) }
@@ -102,6 +108,7 @@ class MainActivity : Activity() {
         tvCard.addView(text(L.s("من التلفزيون", "TV'den"), 20f, Color.WHITE))
         tvCard.addView(text(L.s("سجّل دخولك هنا بالريموت", "Kumandayla burada giriş yap"), 14f, Color.rgb(143, 163, 199)), lp(4))
         val psnBtn = button(L.s("تسجيل الدخول", "Giriş yap"), true).apply { setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f); setPadding(30, 14, 30, 14) }
+        psnBtnRef = psnBtn
         psnBtn.setOnClickListener { startActivityForResult(Intent(this, PsnLoginActivity::class.java), 41) }
         tvCard.addView(psnBtn, LinearLayout.LayoutParams(340, -2).apply { topMargin = 18; gravity = Gravity.CENTER_HORIZONTAL })
         val phoneCard = card()
@@ -113,10 +120,27 @@ class MainActivity : Activity() {
         choices.addView(text(L.s("أو", "veya"), 18f, Color.rgb(143, 163, 199)), LinearLayout.LayoutParams(-2, -2).apply { setMargins(30, 0, 30, 0) })
         choices.addView(phoneCard, LinearLayout.LayoutParams(460, -2))
         linkBox.addView(choices, lp(16))
+        // after sign-in the two cards give way to one calm line
+        signedRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
+        signedRow.addView(text(L.s("✓ سجّلت دخولك بحساب PlayStation", "✓ PlayStation hesabınla giriş yapıldı"), 19f, Color.rgb(52, 211, 120)))
+        signedRow.addView(text(L.s("تغيير الحساب", "Hesabı değiştir"), 15f, Color.rgb(120, 136, 168)).apply {
+            isFocusable = true; setPadding(28, 10, 28, 10)
+            setOnClickListener { store.accountId = ""; accountField.setText(""); linkStatus.text = ""; refresh(); psnBtnRef?.requestFocus() }
+            setOnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Color.WHITE else Color.rgb(120, 136, 168)) }
+        }, LinearLayout.LayoutParams(-2, -2).apply { marginStart = 24 })
+        linkBox.addView(signedRow, lp(18))
         // the Account ID is filled in by the sign-in; players never need to see it
         accountField = field(L.s("رقم حساب PSN (Account ID)", "PSN hesap numarası (Account ID)"), InputType.TYPE_CLASS_TEXT).also { it.visibility = View.GONE; linkBox.addView(it, wide(16)) }
         linkBox.addView(text(L.s("في البلايستيشن: الإعدادات ← النظام ← اللعب عن بُعد ← إقران الجهاز", "PlayStation'da: Ayarlar → Sistem → Uzaktan Oynatma → Cihazı Bağla"), 16f, Color.rgb(143, 163, 199)), lp(18))
         pinField = field(L.s("رقم الربط (8 أرقام)", "Bağlantı kodu (8 haneli)"), InputType.TYPE_CLASS_NUMBER).also { linkBox.addView(it, wide(8)) }
+        pinField.filters = arrayOf(android.text.InputFilter.LengthFilter(8))
+        // the 8th digit links right away: no extra button press needed
+        pinField.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(a: CharSequence?, b: Int, c: Int, d: Int) {}
+            override fun onTextChanged(a: CharSequence?, b: Int, c: Int, d: Int) {}
+            override fun afterTextChanged(e: android.text.Editable?) { if (e?.length == 8 && signedIn()) link() }
+        })
+        pinField.setOnEditorActionListener { _, _, _ -> link(); true }
         val linkBtn = button(L.s("ربط", "Bağla"), true)
         linkBtn.setOnClickListener { link() }
         linkBox.addView(linkBtn, LinearLayout.LayoutParams(420, -2).apply { topMargin = 20; gravity = Gravity.CENTER_HORIZONTAL })
@@ -154,8 +178,7 @@ class MainActivity : Activity() {
                 android.app.AlertDialog.Builder(this@MainActivity)
                     .setMessage(L.s("تبغى تلغي ربط البلايستيشن وتسجيل الدخول من هذا التلفزيون؟", "PlayStation bağlantısı ve oturum bu TV'den kaldırılsın mı?"))
                     .setPositiveButton(L.s("إلغاء الربط", "Bağlantıyı kaldır")) { _, _ ->
-                        store.registKey = null; store.morning = null; store.accountId = ""; store.consoleId = ""
-                        accountField.setText(""); linkStatus.text = ""; refresh()
+                        unlink()
                     }
                     .setNegativeButton(L.s("رجوع", "Geri"), null).show().focusMain()
             }
@@ -164,7 +187,9 @@ class MainActivity : Activity() {
         val footer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
         col.addView(footer, lp(2))
         footer.addView(relink)
-        footer.addView(text("•", 13f, Color.rgb(96, 110, 138)), LinearLayout.LayoutParams(-2, -2).apply { setMargins(8, 0, 8, 0) })
+        val dot1 = text("•", 13f, Color.rgb(96, 110, 138))
+        footer.addView(dot1, LinearLayout.LayoutParams(-2, -2).apply { setMargins(8, 0, 8, 0) })
+        linkedOnly = listOf(relink, dot1)
         footer.addView(text(L.s("Türkçe", "العربية"), 13f, Color.rgb(120, 136, 168)).apply {
             isFocusable = true; setPadding(20, 8, 20, 8)
             setOnClickListener { L.set(this@MainActivity, if (L.isTr) "ar" else "tr"); restartApp() }
@@ -210,10 +235,29 @@ class MainActivity : Activity() {
             store.accountId = id; accountField.setText(id)
             linkStatus.text = L.s("✓ تم تسجيل الدخول. باقي رقم الربط من البلايستيشن", "✓ Giriş yapıldı. Şimdi PlayStation'daki bağlantı kodunu gir")
             pinField.requestFocus()
-        } else linkStatus.text = L.s("ما اكتمل تسجيل الدخول، جرّب مرة ثانية", "Giriş tamamlanamadı, tekrar dene")
+            refresh(); pinField.requestFocus()
+        } else if (data != null) linkStatus.text = L.s("ما اكتمل تسجيل الدخول، جرّب مرة ثانية", "Giriş tamamlanamadı, tekrar dene")
+    }
+
+    private fun signedIn() = runCatching { Base64.decode(store.accountId.trim(), Base64.DEFAULT).size == RegistInfo.ACCOUNT_ID_SIZE }.getOrDefault(false)
+
+    /** forget everything about this PS5 and account, and show the link screen from the start */
+    private fun unlink() {
+        regist?.dispose(); regist = null; linking = false; linkWhenFound = false; waitingToPlay = false
+        store.registKey = null; store.morning = null; store.accountId = ""; store.consoleId = ""; store.consoleHost = ""
+        accountField.setText(""); pinField.setText(""); linkStatus.text = ""
+        refresh()
+        (linkBox.parent?.parent as? ScrollView)?.scrollTo(0, 0)
+        psnBtnRef?.requestFocus()
+        android.widget.Toast.makeText(this, L.s("✓ انلغى الربط", "✓ Bağlantı kaldırıldı"), android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    private fun linkFailed(msg: String) {
+        linkStatus.text = msg; pinField.setText(""); pinField.requestFocus()
     }
 
     private var titleViews: List<View> = emptyList()
+    private var psnBtnRef: View? = null
     private lateinit var licenseLine: TextView
     private lateinit var padBtn: Button
     /** Opens the "add controller" screen on any Android TV / Google TV / Fire TV, trying the known screens in order. */
@@ -320,19 +364,22 @@ class MainActivity : Activity() {
     /** while the link screen is open, ask every 2 s whether the phone finished signing in */
     private val pollQr = object : Runnable {
         override fun run() {
-            if (store.isLinked || linkBox.visibility != View.VISIBLE) { ui.postDelayed(this, 2000); return }
+            if (store.isLinked || signedIn() || linkBox.visibility != View.VISIBLE) { ui.postDelayed(this, 2000); return }
             Thread {
-                val code = runCatching {
+                val j = runCatching {
                     val c = java.net.URL("https://arribha-intake.d-fifn1.workers.dev/link-poll?s=$linkSid").openConnection() as java.net.HttpURLConnection
                     c.setRequestProperty("User-Agent", "arribha-app/1"); c.connectTimeout = 4000; c.readTimeout = 6000
-                    org.json.JSONObject(c.inputStream.bufferedReader().readText()).optString("code", "")
-                }.getOrDefault("")
-                val id = if (code.isNotEmpty()) runCatching { PsnAuth.accountId(code) }.getOrNull() else null
+                    org.json.JSONObject(c.inputStream.bufferedReader().readText())
+                }.getOrNull()
+                val code = j?.optString("code", "") ?: ""
+                // the server already checked the sign-in with Sony and sends the account id
+                val id = j?.optString("id", "")?.takeIf { v -> runCatching { Base64.decode(v, Base64.DEFAULT).size == RegistInfo.ACCOUNT_ID_SIZE }.getOrDefault(false) }
+                    ?: if (code.isNotEmpty()) runCatching { PsnAuth.accountId(code) }.getOrNull() else null
                 ui.post {
                     if (id != null) {
                         store.accountId = id; accountField.setText(id)
                         linkStatus.text = L.s("✓ تم تسجيل الدخول من الجوال. باقي رقم الربط من البلايستيشن", "✓ Telefondan giriş yapıldı. Şimdi PlayStation'daki bağlantı kodunu gir")
-                        pinField.requestFocus()
+                        refresh(); pinField.requestFocus()
                     } else if (code.isNotEmpty()) linkStatus.text = L.s("ما اكتمل تسجيل الدخول، جرّب مرة ثانية", "Giriş tamamlanamadı, tekrar dene")
                 }
             }.start()
@@ -345,6 +392,14 @@ class MainActivity : Activity() {
         startDiscovery()
         ui.removeCallbacks(pollQr); ui.postDelayed(pollQr, 2000)
         refresh()
+        if (StreamActivity.relinkHint && store.isLinked) {
+            StreamActivity.relinkHint = false
+            android.app.AlertDialog.Builder(this)
+                .setMessage(L.s("البلايستيشن رفض الاتصال. إذا تكرر هذا، أعد ربط التلفزيون (يصير هذا إذا تغيّر الحساب أو انحذف الربط من البلايستيشن).",
+                    "PlayStation bağlantıyı reddetti. Tekrarlarsa TV'yi yeniden bağla (hesap değiştiyse veya bağlantı PlayStation'dan silindiyse olur)."))
+                .setPositiveButton(L.s("إعادة الربط", "Yeniden bağla")) { _, _ -> unlink() }
+                .setNegativeButton(L.s("رجوع", "Geri"), null).show().focusMain()
+        }
     }
 
     override fun onPause() {
@@ -377,23 +432,25 @@ class MainActivity : Activity() {
         if (h.hostAddr != null && store.isLinked && h.hostAddr != store.consoleHost) store.consoleHost = h.hostAddr
         h.systemVersion?.let { if (it != store.consoleFw) store.consoleFw = it }
         if (waitingToPlay && h.state == DiscoveryHost.State.READY) { waitingToPlay = false; openStream() }
+        if (linkWhenFound && !store.isLinked && h.hostAddr != null) { linkWhenFound = false; link() }
     }
 
     private fun refresh() {
         val h = myHost()
         consoleLine.text = when {
             h == null -> L.s("● جاري البحث عن البلايستيشن", "● PlayStation aranıyor")
+            !store.isLinked -> L.s("● لقيت ${h.hostName} — باقي تربطه", "● ${h.hostName} bulundu — bağlaman gerekiyor")
             h.state == DiscoveryHost.State.READY -> L.s("● ${h.hostName} جاهز", "● ${h.hostName} hazır")
             h.state == DiscoveryHost.State.STANDBY -> L.s("● ${h.hostName} في وضع الراحة", "● ${h.hostName} dinlenme modunda")
             else -> "● ${h.hostName}"
         }
         consoleLine.text = android.text.SpannableString(consoleLine.text).apply {
             if (isNotEmpty() && this[0] == '●') setSpan(android.text.style.ForegroundColorSpan(
-                if (h?.state == DiscoveryHost.State.READY) Color.rgb(52, 211, 120) else Color.rgb(250, 190, 70)), 0, 1, 0)
+                if (store.isLinked && h?.state == DiscoveryHost.State.READY) Color.rgb(52, 211, 120) else Color.rgb(250, 190, 70)), 0, 1, 0)
         }
         val tierName = when (store.tier) { 2 -> L.s("قوي", "Güçlü"); 1 -> L.s("متوسط", "Orta"); 0 -> L.s("ضعيف", "Zayıf"); else -> null }
         if (tierName != null) {
-            val warn = if (store.tier == 0) L.s("\n⚠️ تلفزيونك ضعيف، وممكن تنزل الفريمات حتى بدون ترجمة. الترجمة بتشتغل ببطء عشان تحافظ على السلاسة.", "\n⚠️ TV'n zayıf; çeviri olmadan da kare hızı düşebilir. Akıcılığı korumak için çeviri yavaş çalışır.") else ""
+            val warn = if (store.tier == 0 && store.isLinked) L.s("\n⚠️ تلفزيونك ضعيف، وممكن تنزل الفريمات حتى بدون ترجمة. الترجمة بتشتغل ببطء عشان تحافظ على السلاسة.", "\n⚠️ TV'n zayıf; çeviri olmadan da kare hızı düşebilir. Akıcılığı korumak için çeviri yavaş çalışır.") else ""
             deviceLine.text = "1080p • " + L.s("60 إطارًا", "60 fps") + " • ${if (store.useHevc) "HEVC" else "H.264"} • " + L.s("جهاز $tierName", "Cihaz: $tierName") + warn
         }
         licenseLine.text = when {
@@ -406,17 +463,33 @@ class MainActivity : Activity() {
         // the link screen shows only what linking needs
         for (v in listOf(licenseLine, sponsorLabel, sponsorRow)) v.visibility = if (linked) View.VISIBLE else View.GONE
         titleViews.forEach { it.visibility = if (linked) View.VISIBLE else View.GONE }
+        linkedOnly.forEach { it.visibility = if (linked) View.VISIBLE else View.GONE }
+        val signed = signedIn()
+        choicesRow.visibility = if (signed) View.GONE else View.VISIBLE
+        signedRow.visibility = if (signed) View.VISIBLE else View.GONE
         linkBox.visibility = if (linked) View.GONE else View.VISIBLE
         settingsBox.visibility = if (linked) View.VISIBLE else View.GONE
         playBtn.visibility = if (linked) View.VISIBLE else View.GONE
-        if (linked && !playBtn.hasFocus() && currentFocus == null) playBtn.requestFocus()
+        // the cursor always waits on the next step: play, the code field, or sign-in
+        val f = currentFocus
+        val lost = f == null || !f.isShown
+        when {
+            linked -> if (lost || linkBox.findFocus() != null) playBtn.requestFocus()
+            signed -> if (lost || f !== pinField && pinField.text.isEmpty() && f?.parent !== signedRow) pinField.requestFocus()
+            else -> if (lost) psnBtnRef?.requestFocus()
+        }
     }
 
     // ---------------------------------------------------------------- link
 
     private fun link() {
+        if (linking || store.isLinked) return
         val h = myHost()
         val addr = h?.hostAddr
+        if (addr == null && signedIn() && pinField.text.length == 8) {
+            linkWhenFound = true
+            linkStatus.text = L.s("⏳ أدوّر على البلايستيشن... تأكد إنه شغّال وعلى نفس الراوتر", "⏳ PlayStation aranıyor... açık ve aynı modemde olduğundan emin ol"); return
+        }
         if (addr == null) { linkStatus.text = L.s("ما لقيت البلايستيشن في الشبكة. شغّله وتأكد إنه على نفس الراوتر.", "PlayStation ağda bulunamadı. Açık ve aynı modeme bağlı olduğundan emin ol."); return }
         val acc = try { Base64.decode(accountField.text.toString().trim(), Base64.DEFAULT) } catch (e: Exception) { null }
         if (acc == null || acc.size != RegistInfo.ACCOUNT_ID_SIZE) { linkStatus.text = L.s("سجّل دخولك أول (من التلفزيون أو الجوال)", "Önce giriş yap (TV'den veya telefondan)"); return }
@@ -426,10 +499,12 @@ class MainActivity : Activity() {
         val target = if (h.isPS5) Target.PS5_1 else Target.PS4_10
         linkStatus.text = L.s("⏳ جاري الربط...", "⏳ Bağlanıyor...")
         regist?.dispose()
+        linking = true
         try {
             val log = ChiakiLog(ChiakiLog.Level.WARNING.value or ChiakiLog.Level.ERROR.value)  /* INFO prints the link keys */ { _, t -> Log.i("ArribhaRegist", t) }
             regist = Regist(RegistInfo(target, addr, false, null, acc, pin.toInt()), log) { ev ->
                 ui.post {
+                    linking = false
                     when (ev) {
                         is RegistEventSuccess -> {
                             store.registKey = ev.host.rpRegistKey
@@ -445,12 +520,13 @@ class MainActivity : Activity() {
                             refresh()
                             playBtn.requestFocus()
                         }
-                        is RegistEventFailed -> linkStatus.text = L.s("❌ ما نجح الربط. تأكد من رقم الربط (يتغير كل 5 دقايق) ورقم الحساب.", "❌ Bağlanamadı. Kodu kontrol et (her 5 dakikada bir değişir).")
+                        is RegistEventFailed -> linkFailed(L.s("❌ ما نجح الربط. تأكد من رقم الربط (يتغير كل 5 دقايق) ورقم الحساب.", "❌ Bağlanamadı. Kodu kontrol et (her 5 dakikada bir değişir)."))
                         is RegistEventCanceled -> linkStatus.text = L.s("انلغى الربط", "Bağlantı iptal edildi")
                     }
                 }
             }
         } catch (e: CreateError) {
+            linking = false
             linkStatus.text = "❌ ${e.errorCode}"
         }
     }
