@@ -154,7 +154,7 @@ class MainActivity : Activity() {
                         store.registKey = null; store.morning = null; store.accountId = ""; store.consoleId = ""
                         accountField.setText(""); linkStatus.text = ""; refresh()
                     }
-                    .setNegativeButton("رجوع", null).show()
+                    .setNegativeButton("رجوع", null).show().focusMain()
             }
             setOnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Color.WHITE else Color.rgb(120, 136, 168)) }
         }
@@ -229,7 +229,7 @@ class MainActivity : Activity() {
             .setPositiveButton("شراء $price") { _, _ ->
                 if (!Licensing.buy(this)) android.widget.Toast.makeText(this, "متجر Google Play غير جاهز، جرّب بعد شوي", android.widget.Toast.LENGTH_LONG).show()
             }
-            .setNegativeButton("لاحقًا", null).show()
+            .setNegativeButton("لاحقًا", null).show().focusMain()
     }
 
     private fun loadSponsors() {
@@ -271,7 +271,7 @@ class MainActivity : Activity() {
         if (url.isEmpty()) return
         val img = android.widget.ImageView(this).apply { setImageBitmap(qr(url, 360)); setPadding(30, 30, 30, 30) }
         android.app.AlertDialog.Builder(this).setTitle(title).setMessage("امسح الرمز بكاميرا جوالك").setView(img)
-            .setPositiveButton("تم", null).show()
+            .setPositiveButton("تم", null).show().focusMain()
     }
 
     private fun hasPad() = android.view.InputDevice.getDeviceIds().any { id ->

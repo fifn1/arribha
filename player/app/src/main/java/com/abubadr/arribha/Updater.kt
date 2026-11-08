@@ -43,7 +43,7 @@ object Updater {
                         .setTitle("تحديث جديد لعرّبها ($latest)")
                         .setMessage(j.optString("body").take(400).ifBlank { "تحسينات وإصلاحات." })
                         .setPositiveButton("تحديث الآن") { _, _ -> download(a, url) }
-                        .setNegativeButton("لاحقًا", null).show()
+                        .setNegativeButton("لاحقًا", null).show().focusMain()
                 }
             }.onFailure { Log.w("Arribha", "update check: $it") }
         }.start()
