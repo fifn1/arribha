@@ -275,6 +275,7 @@ class MainActivity : Activity() {
         refresh()
         val h = myHost() ?: return
         if (h.hostAddr != null && store.isLinked && h.hostAddr != store.consoleHost) store.consoleHost = h.hostAddr
+        h.systemVersion?.let { if (it != store.consoleFw) store.consoleFw = it }
         if (waitingToPlay && h.state == DiscoveryHost.State.READY) { waitingToPlay = false; openStream() }
     }
 

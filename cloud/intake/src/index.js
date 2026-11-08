@@ -10,6 +10,11 @@ export default {
     try {
       if (req.method === "POST" && url.pathname === "/submit") return await submit(req, env);
       if (url.pathname === "/privacy") return privacy();
+      if (req.method === "POST" && url.pathname === "/health") return await health(req, env);
+      if (url.pathname === "/alerts") {
+        if (req.headers.get("authorization") !== `Bearer ${env.TOKEN}`) return new Response("no", { status: 401 });
+        return await alerts(env);
+      }
       if (url.pathname === "/link") return req.method === "POST" ? await linkSave(req, env) : linkPage(url);
       if (url.pathname === "/link-poll") return await linkPoll(url, env);
       if (url.pathname === "/pending" || url.pathname === "/done") {
@@ -222,4 +227,35 @@ function privacy() {
 <div class="en"><h2>Privacy (English)</h2><p>Arribha only collects English game text that has no professional Arabic translation yet. It is machine-translated, then the English is deleted; only a fingerprint and the Arabic are published. No personal data is collected. PlayStation passwords go to Sony only. Gameplay video stays inside your home network. IP addresses are used only for daily rate limits and are deleted daily.</p></div>
 </body></html>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+}
+
+// ---- alarm: anonymous connection results per PlayStation software version ----
+async function health(req, env) {
+  const b = await req.json();
+  const day = new Date().toISOString().slice(0, 10);
+  const fw = String(b.fw || "?").slice(0, 16), app = String(b.app || "?").slice(0, 16);
+  const ok = b.ok ? 1 : 0;
+  await env.DB.prepare(`INSERT INTO health (day, fw, app, ok, fail, last_reason) VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(day, fw, app) DO UPDATE SET ok = ok + excluded.ok, fail = fail + excluded.fail,
+    last_reason = COALESCE(excluded.last_reason, last_reason)`)
+    .bind(day, fw, app, ok, 1 - ok, ok ? null : String(b.reason || "").slice(0, 120)).run();
+  return new Response("ok");
+}
+
+// versions where today at least 5 connections failed and more than 30% fail -> raise once per version per day
+async function alerts(env) {
+  const day = new Date().toISOString().slice(0, 10);
+  const { results } = await env.DB.prepare(
+    "SELECT fw, SUM(ok) ok, SUM(fail) fail, MAX(last_reason) reason FROM health WHERE day = ? GROUP BY fw").bind(day).all();
+  const out = [];
+  for (const r of results) {
+    if (r.fail >= 5 && r.fail / (r.ok + r.fail) > 0.3) {
+      const k = day + ":" + r.fw;
+      const seen = await env.DB.prepare("SELECT 1 FROM alerted WHERE k = ?").bind(k).first();
+      if (seen) continue;
+      await env.DB.prepare("INSERT INTO alerted (k) VALUES (?)").bind(k).run();
+      out.push(r);
+    }
+  }
+  return Response.json(out);
 }

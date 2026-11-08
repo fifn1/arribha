@@ -53,6 +53,13 @@ class Store(context: Context) {
         get() = p.getBoolean("hdr", true)
         set(v) = p.edit().putBoolean("hdr", v).apply()
 
+    var consoleFw: String
+        get() = p.getString("fw", "") ?: ""
+        set(v) = p.edit().putString("fw", v).apply()
+    var healthDay: String
+        get() = p.getString("health_day", "") ?: ""
+        set(v) = p.edit().putString("health_day", v).apply()
+
     var welcomed: Boolean
         get() = p.getBoolean("welcomed", false)
         set(v) = p.edit().putBoolean("welcomed", v).apply()

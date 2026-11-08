@@ -176,6 +176,7 @@ class StreamActivity : Activity() {
             session = s
         } catch (e: CreateError) {
             say("❌ تعذر بدء الاتصال: ${e.errorCode}")
+            health(false, "create: ${e.errorCode}")
         }
     }
 
@@ -227,6 +228,24 @@ class StreamActivity : Activity() {
         super.onStop()
     }
 
+    /** Anonymous alarm signal: did connecting work with this PlayStation version? (successes: once a day) */
+    private fun health(ok: Boolean, reason: String?) {
+        val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+        if (ok && store.healthDay == day) return
+        if (ok) store.healthDay = day
+        val app = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull() ?: "?"
+        val body = org.json.JSONObject().put("ok", ok).put("fw", store.consoleFw.ifEmpty { "?" }).put("app", app)
+        if (reason != null) body.put("reason", reason)
+        Thread {
+            runCatching {
+                val c = java.net.URL("https://arribha-intake.d-fifn1.workers.dev/health").openConnection() as java.net.HttpURLConnection
+                c.requestMethod = "POST"; c.doOutput = true; c.connectTimeout = 4000; c.readTimeout = 6000
+                c.setRequestProperty("Content-Type", "application/json"); c.setRequestProperty("User-Agent", "arribha-app/1")
+                c.outputStream.use { it.write(body.toString().toByteArray()) }; c.responseCode
+            }
+        }.start()
+    }
+
     private fun disconnect() {
         watcher?.dispose(); watcher = null; gameName = null
         val s = session ?: return
@@ -238,6 +257,7 @@ class StreamActivity : Activity() {
     private fun onEvent(e: Event) {
         when (e) {
             is ConnectedEvent -> {
+                health(true, null)
                 if (!hasGamepad()) say("🎮 اليدة مو موصولة بالتلفزيون: اضغط زر PS في اليدة. إذا ما اشتغلت، اربطها بالتلفزيون (Create + PS)", 12000)
                 else say(if (engine.enabled) "✅ متصل — الترجمة تشتغل داخل الألعاب بس (OK بالريموت يشغّلها ويطفيها)" else "✅ متصل — الترجمة طافية", 5000)
                 engine.inGame = true
@@ -245,6 +265,7 @@ class StreamActivity : Activity() {
                 watchGame()
             }
             is QuitEvent -> {
+                if (e.reason.isError) health(false, e.reasonString ?: e.reason.toString())
                 engine.stop()
                 Log.w("Arribha", "quit: ${e.reason} ${e.reasonString}")
                 val msg = if (e.reason.isError) "❌ انقطع الاتصال: ${e.reasonString ?: e.reason}" else "انتهى اللعب"
