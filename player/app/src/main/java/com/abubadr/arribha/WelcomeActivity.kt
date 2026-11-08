@@ -14,11 +14,13 @@ import android.widget.TextView
 
 /** First-run guide: everything the player sets once, in short simple steps (for ages 10+). */
 class WelcomeActivity : Activity() {
+    // order matters: everything that needs the controller on the PlayStation comes first,
+    // the controller moves to the TV last, so ONE controller is enough
     private val steps = listOf(
-        "فعّل اللعب عن بُعد" to "في البلايستيشن: الإعدادات ← النظام ← اللعب عن بُعد ← شغّل «تمكين اللعب عن بُعد»",
-        "خلّ البلايستيشن يصحى من التلفزيون" to "في البلايستيشن: الإعدادات ← النظام ← توفير الطاقة ← الميزات في وضع الراحة ← شغّل «البقاء متصلًا بالإنترنت» و«تشغيل PS5 من الشبكة»",
-        "اربط اليد بالتلفزيون" to "اضغط زر Create وزر PS مع بعض لين يرمش الضوء، وبعدها في التلفزيون: الإعدادات ← أجهزة التحكم والملحقات ← إضافة",
+        "جهّز البلايستيشن (باليد)" to "الإعدادات ← النظام ← اللعب عن بُعد ← شغّل «تمكين اللعب عن بُعد». ومن «توفير الطاقة ← الميزات في وضع الراحة» شغّل «البقاء متصلًا بالإنترنت» و«تشغيل PS5 من الشبكة»",
         "نفس الشبكة" to "البلايستيشن والتلفزيون على نفس الراوتر. الأفضل: البلايستيشن بكيبل والتلفزيون واي فاي 5G",
+        "اربط عرّبها (بالريموت)" to "سجّل دخولك في عرّبها، وبعدها في البلايستيشن: اللعب عن بُعد ← إقران الجهاز، واكتب الرقم في عرّبها",
+        "انقل اليد للتلفزيون" to "اضغط زر Create وزر PS مع بعض لين يرمش الضوء، وفي عرّبها اختر «ربط اليد». يد وحدة تكفي: عرّبها يشغّل البلايستيشن ويتحكم فيه",
         "شغّل الترجمة في اللعبة" to "داخل اللعبة: الإعدادات ← الترجمة (Subtitles) ← تشغيل. عرّبها يحوّلها للعربي",
     )
 
@@ -32,7 +34,7 @@ class WelcomeActivity : Activity() {
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Color.rgb(16, 27, 54), Color.rgb(7, 10, 20), Color.rgb(4, 5, 10)))
         }
         col.addView(text("أهلًا بك في عرّبها", 40f, Color.WHITE, true))
-        col.addView(text("خمس خطوات مرة وحدة بس، وبعدها العب بالعربي", 18f, Color.rgb(143, 163, 199), false), lp(6))
+        col.addView(text("خمس خطوات مرة وحدة بس، ويكفيك يد وحدة", 18f, Color.rgb(143, 163, 199), false), lp(6))
         for ((i, s) in steps.withIndex()) col.addView(row(i + 1, s.first, s.second), LinearLayout.LayoutParams(-1, -2).apply { topMargin = 10 })
         val go = Button(this).apply {
             text = "يلا نبدأ"; isAllCaps = false; stateListAnimator = null

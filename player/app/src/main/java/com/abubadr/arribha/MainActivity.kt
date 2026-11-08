@@ -71,6 +71,16 @@ class MainActivity : Activity() {
         }
         col.addView(consoleLine, lp(34))
 
+        // controller not connected to the TV: one tap opens the TV's pairing screen
+        padBtn = button("ربط اليد بالتلفزيون", false).apply {
+            setOnClickListener {
+                runCatching { startActivity(Intent("com.android.settings.action.CONNECTED_DEVICE_DASHBOARD")) }
+                    .recoverCatching { startActivity(Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)) }
+                    .recoverCatching { startActivity(Intent(android.provider.Settings.ACTION_SETTINGS)) }
+                android.widget.Toast.makeText(this@MainActivity, "اضغط Create وPS مع بعض لين يرمش الضوء، واختر «إضافة»", android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+        col.addView(padBtn, lp(18))
         playBtn = button("ابدأ اللعب", true).also { col.addView(it, LinearLayout.LayoutParams(620, -2).apply { topMargin = 34; gravity = Gravity.CENTER_HORIZONTAL }) }
         playBtn.setOnClickListener { play() }
 
@@ -180,6 +190,9 @@ class MainActivity : Activity() {
     }
 
     private var titleViews: List<View> = emptyList()
+    private lateinit var padBtn: Button
+    private fun hasPad() = android.view.InputDevice.getDeviceIds().any { id ->
+        val d = android.view.InputDevice.getDevice(id); d != null && (d.sources and android.view.InputDevice.SOURCE_GAMEPAD) == android.view.InputDevice.SOURCE_GAMEPAD }
     private val linkSid = java.security.SecureRandom().let { r -> ByteArray(16).also { r.nextBytes(it) } }.joinToString("") { "%02x".format(it) }
 
     private fun qr(text: String, size: Int): android.graphics.Bitmap {
@@ -269,6 +282,7 @@ class MainActivity : Activity() {
             deviceLine.text = "1080p • 60 إطارًا • ${if (store.useHevc) "HEVC" else "H.264"} • جهاز $tierName$warn"
         }
         val linked = store.isLinked
+        padBtn.visibility = if (linked && !hasPad()) View.VISIBLE else View.GONE
         titleViews.forEach { it.visibility = if (linked) View.VISIBLE else View.GONE }
         linkBox.visibility = if (linked) View.GONE else View.VISIBLE
         settingsBox.visibility = if (linked) View.VISIBLE else View.GONE
