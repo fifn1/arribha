@@ -41,6 +41,15 @@ object Library {
                 intake = c.optString("intake", intake); lib = c.optString("lib", lib)
                 sending = roll < c.optDouble("sample", 1.0)         // only a sample of players send new lines
                 Log.i("Arribha", "library ready, sending new lines: $sending")
+                // download the whole library now, so known lines are instant from the first time they appear
+                val idx = org.json.JSONArray(get("${lib}index.json"))
+                for (i in 0 until idx.length()) {
+                    val sh = idx.getString(i)
+                    val f = File(dir, "$sh.json")
+                    if (f.exists() && System.currentTimeMillis() - f.lastModified() < 6 * 3600_000L) { runCatching { load(sh, f.readText()) }; continue }
+                    runCatching { val txt = get("$lib$sh.json"); f.writeText(txt); load(sh, txt) }
+                }
+                Log.i("Arribha", "library prefetched: ${idx.length()} files")
             }
         }
     }

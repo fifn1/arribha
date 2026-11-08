@@ -9,8 +9,8 @@ android {
         applicationId 'com.abubadr.arribha'
         minSdk 24
         targetSdk 34
-        versionCode 4
-        versionName '1.0.1'
+        versionCode 5
+        versionName '1.0.2'
         ndk { abiFilters 'armeabi-v7a', 'arm64-v8a' }
     }
     // release signing: the key and its passwords stay outside the code (signing/keystore.properties), never on GitHub

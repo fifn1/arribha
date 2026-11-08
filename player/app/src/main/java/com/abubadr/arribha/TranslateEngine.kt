@@ -220,8 +220,13 @@ class TranslateEngine(
         lastGrid = look.grid
         lastReadAt = now
 
-        // 3) read only the part of the picture with text
+        // 3) seen this exact text picture before? show its translation at once, no reading needed
         val area = look.area
+        val vkey = visualKey(bm, area)
+        synchronized(seenPictures) { seenPictures[vkey] }?.let { (sig, shown) ->
+            if (sig != shownSig) { shownSig = sig; ui.post { show(shown) } }
+            return lookEvery
+        }
         val crop = Bitmap.createBitmap(bm, area.left, area.top, area.width(), area.height())
         val t0 = SystemClock.uptimeMillis()
         val result = Tasks.await(ocr.process(InputImage.fromBitmap(crop, 0)), 5, TimeUnit.SECONDS)
@@ -250,6 +255,7 @@ class TranslateEngine(
             Shown(p.rect, p.speaker?.let { nameAr(it) }, p.speakerColor, translatePiece(p.text), p.icons, p.textColor, p.bgColor, p.lineH, p.patch)
         }
         shownSig = sig
+        synchronized(seenPictures) { seenPictures[vkey] = sig to shown }
         ui.post { show(shown) }
         Log.i(TAG, "read ${ocrMs}ms + translate ${SystemClock.uptimeMillis() - t1}ms (area ${area.width()}x${area.height()}): " +
                 pieces.joinToString(" | ") { it.text } + "  =>  " + shown.joinToString(" | ") { it.ar })
@@ -300,6 +306,29 @@ class TranslateEngine(
             max(0, (l - 1) * w / GW), max(0, (t - 1) * h / GH),
             min(w, (r + 2) * w / GW), min(h, (b + 2) * h / GH))
         return Look(edges.toFloat() / samples, grid, area)
+    }
+
+    /** Remembered translations by the look of the text itself (fine edge pattern of the text area). */
+    private val seenPictures = object : LinkedHashMap<String, Pair<String, List<Shown>>>(64, 0.75f, true) {
+        override fun removeEldestEntry(e: MutableMap.MutableEntry<String, Pair<String, List<Shown>>>?) = size > 300
+    }
+
+    private fun visualKey(bm: Bitmap, a: Rect): String {
+        val w = bm.width; val gw = 64; val gh = 10
+        val cells = IntArray(gw * gh)
+        var y = a.top
+        while (y < a.bottom) {
+            var x = a.left
+            while (x < a.right - 1) {
+                val la = lum(px[y * w + x]); val lb = lum(px[y * w + x + 1])
+                if (abs(la - lb) > 90) cells[((y - a.top) * gh / max(1, a.height())) * gw + ((x - a.left) * gw / max(1, a.width()))]++
+                x++
+            }
+            y += 2
+        }
+        val sb = StringBuilder("${a.left / 16},${a.top / 16},${a.width() / 16},${a.height() / 16}:")
+        for (c in cells) sb.append((c / 3).coerceAtMost(35).toString(36))
+        return sb.toString()
     }
 
     private fun lum(c: Int) = ((c shr 16 and 255) * 3 + (c shr 8 and 255) * 6 + (c and 255)) / 10

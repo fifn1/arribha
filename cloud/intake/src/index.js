@@ -113,7 +113,7 @@ async function translate(req, env) {
   const out = await env.AI.run(MODEL_USED, {
     messages: [{ role: "system", content: SYSTEM + glossary }, { role: "user", content: `Game: ${game || "unknown"}
 ` + JSON.stringify(items) }],
-    max_tokens: 6000, temperature: 0.2, reasoning: { effort: "low" },
+    max_tokens: 9000, temperature: 0.2, reasoning: { effort: "medium" },
   });
   const draft = asJson(textOf(out));
   // second pass: strict proofreading of meaning, context, grammar and style against the English
@@ -125,7 +125,7 @@ async function translate(req, env) {
       const rev = await env.AI.run(MODEL_USED, {
         messages: [{ role: "system", content: REVIEW + glossary }, { role: "user", content: `Game: ${game || "unknown"}
 ` + JSON.stringify(pairs) }],
-        max_tokens: 6000, temperature: 0.1, reasoning: { effort: "low" },
+        max_tokens: 9000, temperature: 0.1, reasoning: { effort: "medium" },
       });
       const r = asJson(textOf(rev));
       final = { ...draft };

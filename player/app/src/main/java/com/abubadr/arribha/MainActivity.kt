@@ -74,9 +74,7 @@ class MainActivity : Activity() {
         // controller not connected to the TV: one tap opens the TV's pairing screen
         padBtn = button("ربط اليد بالتلفزيون", false).apply {
             setOnClickListener {
-                runCatching { startActivity(Intent("com.android.settings.action.CONNECTED_DEVICE_DASHBOARD")) }
-                    .recoverCatching { startActivity(Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS)) }
-                    .recoverCatching { startActivity(Intent(android.provider.Settings.ACTION_SETTINGS)) }
+                openPairing()
                 android.widget.Toast.makeText(this@MainActivity, "اضغط Create وPS مع بعض لين يرمش الضوء، واختر «إضافة»", android.widget.Toast.LENGTH_LONG).show()
             }
         }
@@ -191,6 +189,22 @@ class MainActivity : Activity() {
 
     private var titleViews: List<View> = emptyList()
     private lateinit var padBtn: Button
+    /** Opens the "add controller" screen on any Android TV / Google TV / Fire TV, trying the known screens in order. */
+    private fun openPairing() {
+        val tries = listOf(
+            Intent("com.google.android.intent.action.CONNECT_INPUT"),                                   // Android TV / Google TV: add accessory
+            Intent().setClassName("com.android.tv.settings", "com.android.tv.settings.accessories.AddAccessoryActivity"),
+            Intent().setClassName("com.android.tv.settings", "com.android.tv.settings.connectivity.setup.AddAccessoryActivity"),
+            Intent().setClassName("com.amazon.tv.settings.v2", "com.amazon.tv.settings.v2.tv.controllers_bluetooth_devices.ControllersAndBluetoothDevicesActivity"), // Fire TV
+            Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS),
+            Intent(android.provider.Settings.ACTION_SETTINGS),
+        )
+        for (i in tries) {
+            if (i.resolveActivity(packageManager) == null) continue
+            if (runCatching { startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess) return
+        }
+    }
+
     private fun hasPad() = android.view.InputDevice.getDeviceIds().any { id ->
         val d = android.view.InputDevice.getDevice(id); d != null && (d.sources and android.view.InputDevice.SOURCE_GAMEPAD) == android.view.InputDevice.SOURCE_GAMEPAD }
     private val linkSid = java.security.SecureRandom().let { r -> ByteArray(16).also { r.nextBytes(it) } }.joinToString("") { "%02x".format(it) }
