@@ -1,0 +1,12 @@
+name = "arribha-intake"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "arribha-lines"
+database_id = "e7b18a71-549c-4a23-a36b-c26ae269245d"
+
+[ai]
+binding = "AI"

@@ -1,0 +1,12 @@
+# secrets and private material: never published
+signing/
+cloud/.intake_token
+packs-src/
+# build output
+**/build/
+**/.gradle/
+**/local.properties
+cloud/intake/.wrangler/
+node_modules/
+cloud/intake/seed.sql
+cloud/intake/q.sql

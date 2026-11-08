@@ -1,0 +1,34 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.plugin.parcelize'
+}
+android {
+    namespace 'com.abubadr.arribha'
+    compileSdk { version = release(37) }
+    defaultConfig {
+        applicationId 'com.abubadr.arribha'
+        minSdk 24
+        targetSdk 34
+        versionCode 3
+        versionName '1.0.0'
+        ndk { abiFilters 'armeabi-v7a', 'arm64-v8a' }
+    }
+    // release signing: the key and its passwords stay outside the code (signing/keystore.properties), never on GitHub
+    def ksFile = rootProject.file("../signing/keystore.properties")
+    if (ksFile.exists()) {
+        def ks = new Properties(); ks.load(new FileInputStream(ksFile))
+        signingConfigs { release { storeFile file(ks['storeFile']); storePassword ks['storePassword']; keyAlias ks['keyAlias']; keyPassword ks['keyPassword'] } }
+        buildTypes { release { signingConfig signingConfigs.release; minifyEnabled false } }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    packaging { jniLibs { useLegacyPackaging = true } }
+}
+dependencies {
+    implementation 'com.google.mlkit:text-recognition:16.0.1'
+    implementation 'com.google.mlkit:translate:17.0.3'
+    implementation 'com.google.zxing:core:3.5.3'
+    implementation 'androidx.core:core:1.13.1'
+}
