@@ -62,16 +62,16 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(100, 70, 100, 40)
+            setPadding(100, 30, 100, 24)
         }
-        val t1 = text("عرّبها", 72f, Color.WHITE).apply { typeface = android.graphics.Typeface.DEFAULT_BOLD }
-        val t2 = text("ترجمة عربية لألعاب البلايستيشن", 19f, Color.rgb(143, 163, 199))
+        val t1 = text("عرّبها", 56f, Color.WHITE).apply { typeface = android.graphics.Typeface.DEFAULT_BOLD }
+        val t2 = text("ترجمة عربية لألعاب البلايستيشن", 17f, Color.rgb(143, 163, 199))
         col.addView(t1); col.addView(t2, lp(2)); titleViews = listOf(t1, t2)
         consoleLine = text("", 18f, Color.rgb(205, 216, 236)).apply {
             background = GradientDrawable().apply { cornerRadius = 100f; setColor(Color.argb(60, 255, 255, 255)) }
             setPadding(36, 12, 36, 12)
         }
-        col.addView(consoleLine, lp(34))
+        col.addView(consoleLine, lp(18))
 
         // controller not connected to the TV: one tap opens the TV's pairing screen
         padBtn = button("ربط اليد بالتلفزيون", false).apply {
@@ -80,11 +80,11 @@ class MainActivity : Activity() {
                 android.widget.Toast.makeText(this@MainActivity, "اضغط Create وPS مع بعض لين يرمش الضوء، واختر «إضافة»", android.widget.Toast.LENGTH_LONG).show()
             }
         }
-        col.addView(padBtn, lp(18))
-        playBtn = button("ابدأ اللعب", true).also { col.addView(it, LinearLayout.LayoutParams(620, -2).apply { topMargin = 34; gravity = Gravity.CENTER_HORIZONTAL }) }
+        col.addView(padBtn, lp(12))
+        playBtn = button("ابدأ اللعب", true).also { col.addView(it, LinearLayout.LayoutParams(560, -2).apply { topMargin = 18; gravity = Gravity.CENTER_HORIZONTAL }) }
         playBtn.setOnClickListener { if (Licensing.canPlay) play() else paywall() }
 
-        licenseLine = text("", 15f, Color.rgb(143, 163, 199)).also { col.addView(it, lp(10)) }
+        licenseLine = text("", 14f, Color.rgb(143, 163, 199)).also { col.addView(it, lp(6)) }
 
         // --- one-time linking ---
         linkBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL }
@@ -134,17 +134,17 @@ class MainActivity : Activity() {
         sBtn.setOnClickListener { store.textSize = (store.textSize + 1) % 3; refreshSettings() }
         refreshSettings()
         for (b in listOf(tBtn, aBtn, sBtn)) settingsBox.addView(b, LinearLayout.LayoutParams(-2, -2).apply { setMargins(10, 0, 10, 0) })
-        col.addView(settingsBox, lp(30))
+        col.addView(settingsBox, lp(16))
 
         // --- sponsors: three tiles, filled from sponsors.json on GitHub ---
-        col.addView(text("رعاة", 12f, Color.rgb(96, 110, 138)), lp(26))
+        col.addView(text("رعاة", 12f, Color.rgb(96, 110, 138)), lp(16))
         sponsorRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
         col.addView(sponsorRow, lp(6))
         loadSponsors()
 
         // --- footer: quiet details ---
         deviceLine = text("", 13f, Color.rgb(96, 110, 138))
-        col.addView(deviceLine, lp(36))
+        col.addView(deviceLine, lp(16))
         val relink = text("إلغاء الربط", 13f, Color.rgb(120, 136, 168)).apply {
             isFocusable = true; setPadding(20, 8, 20, 8)
             setOnClickListener {
@@ -158,12 +158,15 @@ class MainActivity : Activity() {
             }
             setOnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Color.WHITE else Color.rgb(120, 136, 168)) }
         }
-        col.addView(relink, lp(4))
-        col.addView(text("طريقة الاستخدام", 13f, Color.rgb(120, 136, 168)).apply {
+        val footer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
+        col.addView(footer, lp(2))
+        footer.addView(relink)
+        footer.addView(text("•", 13f, Color.rgb(96, 110, 138)), LinearLayout.LayoutParams(-2, -2).apply { setMargins(8, 0, 8, 0) })
+        footer.addView(text("طريقة الاستخدام", 13f, Color.rgb(120, 136, 168)).apply {
             isFocusable = true; setPadding(20, 8, 20, 8)
             setOnClickListener { startActivity(Intent(this@MainActivity, WelcomeActivity::class.java)) }
             setOnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Color.WHITE else Color.rgb(120, 136, 168)) }
-        }, lp(0))
+        })
 
         setContentView(ScrollView(this).apply {
             isFillViewport = true
@@ -257,7 +260,7 @@ class MainActivity : Activity() {
                         setOnFocusChangeListener { v, f -> bg.setStroke(if (f) 4 else 0, Color.WHITE); v.animate().scaleX(if (f) 1.05f else 1f).scaleY(if (f) 1.05f else 1f).setDuration(120).start() }
                         setOnClickListener { showQr(if (url.startsWith("https://")) url else adUrl, if (url.isNotEmpty()) name else "أعلن في عرّبها") }
                     }
-                    sponsorRow.addView(tile, LinearLayout.LayoutParams(250, 140).apply { setMargins(12, 0, 12, 0) })
+                    sponsorRow.addView(tile, LinearLayout.LayoutParams(210, 118).apply { setMargins(12, 0, 12, 0) })
                 }
             }
         }.start()
