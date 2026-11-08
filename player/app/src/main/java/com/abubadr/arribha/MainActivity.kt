@@ -291,7 +291,7 @@ class MainActivity : Activity() {
         val price = Licensing.price ?: L.s("9.99 ر.س", "")
         android.app.AlertDialog.Builder(this)
             .setTitle(L.s("فعّل ترجمان مدى الحياة", "Tercüman'ı ömür boyu etkinleştir"))
-            .setMessage(L.s("انتهت تجربتك المجانية (3 ساعات لعب).\n\nادفع مرة وحدة بس $price وتلعب مترجم مدى الحياة، مع كل التحديثات.\n\nالدفع آمن عن طريق Google Play: بالبطاقة، أو رصيد الجوال، أو بطاقات Google Play، حسب المتاح في بلدك.", "Ücretsiz denemen bitti (3 saat oyun).\n\nYalnızca bir kez $price öde, ömür boyu çeviriyle oyna; tüm güncellemeler dahil.\n\nÖdeme Google Play üzerinden güvenle yapılır: kart, mobil bakiye veya Google Play hediye kartı (ülkene göre)."))
+            .setMessage(L.s("انتهت تجربتك المجانية (48 ساعة).\n\nادفع مرة وحدة بس $price وتلعب مترجم مدى الحياة، مع كل التحديثات.\n\nالدفع آمن عن طريق Google Play: بالبطاقة، أو رصيد الجوال، أو بطاقات Google Play، حسب المتاح في بلدك.", "Ücretsiz denemen bitti (48 saat).\n\nYalnızca bir kez $price öde, ömür boyu çeviriyle oyna; tüm güncellemeler dahil.\n\nÖdeme Google Play üzerinden güvenle yapılır: kart, mobil bakiye veya Google Play hediye kartı (ülkene göre)."))
             .setPositiveButton(L.s("شراء $price", "Satın al $price")) { _, _ ->
                 if (!Licensing.buy(this)) android.widget.Toast.makeText(this, L.s("متجر Google Play غير جاهز، جرّب بعد شوي", "Google Play hazır değil, biraz sonra tekrar dene"), android.widget.Toast.LENGTH_LONG).show()
             }
@@ -495,7 +495,8 @@ Tercüman bağımsız bir uygulamadır; Sony Interactive Entertainment ile bağl
         }
         licenseLine.text = when {
             Licensing.owned -> ""
-            Licensing.canPlay -> L.s("تجربة مجانية: باقي ${Licensing.trialLeftSeconds / 3600} س ${(Licensing.trialLeftSeconds % 3600) / 60} د من اللعب", "Ücretsiz deneme: ${Licensing.trialLeftSeconds / 3600} sa ${(Licensing.trialLeftSeconds % 3600) / 60} dk oyun süresi kaldı")
+            !Licensing.trialStarted -> L.s("تجربة مجانية 48 ساعة، تبدأ مع أول لعبة", "48 saat ücretsiz deneme, ilk oyunla başlar")
+            Licensing.canPlay -> L.s("تجربة مجانية: باقي ${Licensing.trialLeftSeconds / 3600} س ${(Licensing.trialLeftSeconds % 3600) / 60} د", "Ücretsiz deneme: ${Licensing.trialLeftSeconds / 3600} sa ${(Licensing.trialLeftSeconds % 3600) / 60} dk kaldı")
             else -> L.s("انتهت التجربة المجانية — فعّل ترجمان مدى الحياة", "Ücretsiz deneme bitti — Tercüman'ı ömür boyu etkinleştir")
         }
         val linked = store.isLinked

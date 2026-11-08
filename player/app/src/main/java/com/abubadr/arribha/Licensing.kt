@@ -21,14 +21,14 @@ import java.net.URL
 import java.security.MessageDigest
 
 /**
- * Free for 3 hours of real play, then a one-time lifetime purchase through Google Play ("arribha_lifetime").
+ * Free for 48 hours from the start of the first game, then a one-time lifetime purchase through Google Play ("arribha_lifetime").
  *  - The purchase belongs to the player's Google account: it comes back on any TV and after reinstalling.
- *  - Play time is also kept on our server under a one-way hash of this TV's id, so clearing the app's
- *    data or reinstalling does not restart the trial.
+ *  - The trial's start is kept on our server (by a one-way hash of this TV's id) with the server's clock, so
+ *    clearing the app's data, reinstalling or changing the TV's clock does not restart or stretch it.
  */
 object Licensing {
     const val PRODUCT = "arribha_lifetime"
-    const val TRIAL_SECONDS = 3 * 3600
+    const val TRIAL_MS = 48 * 3600_000L
     private const val SERVER = "https://arribha-intake.d-fifn1.workers.dev/trial"
 
     private lateinit var app: Context
@@ -39,15 +39,19 @@ object Licensing {
     var onChange: (() -> Unit)? = null
 
     private val prefs get() = app.getSharedPreferences("arribha_license", Context.MODE_PRIVATE)
-    val usedSeconds get() = prefs.getInt("used", 0)
-    val trialLeftSeconds get() = (TRIAL_SECONDS - usedSeconds).coerceAtLeast(0)
+    /** when the trial started, on the server's clock (0 = no game played yet) */
+    private val started get() = prefs.getLong("started", 0L)
+    private val serverNow get() = System.currentTimeMillis() + prefs.getLong("offset", 0L)
+    val trialStarted get() = started > 0
+    val trialLeftSeconds: Long get() =
+        if (!trialStarted) TRIAL_MS / 1000 else ((started + TRIAL_MS - serverNow) / 1000).coerceAtLeast(0)
     val canPlay get() = owned || trialLeftSeconds > 0
 
     fun init(ctx: Context) {
         if (::app.isInitialized) return
         app = ctx.applicationContext
         owned = prefs.getBoolean("owned", false)
-        syncTrial(0)
+        syncTrial(false)
         billing = BillingClient.newBuilder(app)
             .setListener { r, purchases -> if (r.responseCode == BillingClient.BillingResponseCode.OK) purchases?.forEach(::handle) }
             .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
@@ -101,22 +105,26 @@ object Licensing {
         return r?.responseCode == BillingClient.BillingResponseCode.OK
     }
 
-    /** called while a game is streaming; adds played seconds locally and on the server (server keeps the larger) */
-    fun addPlayed(seconds: Int) {
-        if (owned || seconds <= 0) return
-        prefs.edit().putInt("used", usedSeconds + seconds).apply()
-        syncTrial(seconds)
+    /** called when a game starts streaming (and every minute after): the first call starts the 48 hours */
+    fun addPlayed(@Suppress("UNUSED_PARAMETER") seconds: Int) {
+        if (owned || trialStarted) return
+        prefs.edit().putLong("started", serverNow).apply()       // until the server answers
+        syncTrial(true)
+        onChange?.invoke()
     }
 
-    private fun syncTrial(add: Int) {
+    private fun syncTrial(start: Boolean) {
         Thread {
             runCatching {
                 val c = URL(SERVER).openConnection() as HttpURLConnection
                 c.requestMethod = "POST"; c.doOutput = true; c.connectTimeout = 4000; c.readTimeout = 6000
                 c.setRequestProperty("Content-Type", "application/json"); c.setRequestProperty("User-Agent", "arribha-app/1")
-                c.outputStream.use { it.write(JSONObject().put("id", deviceId()).put("add", add).toString().toByteArray()) }
-                val used = JSONObject(c.inputStream.bufferedReader().readText()).getInt("used")
-                if (used > usedSeconds) { prefs.edit().putInt("used", used).apply(); onChange?.invoke() }
+                c.outputStream.use { it.write(JSONObject().put("id", deviceId()).put("start", start).toString().toByteArray()) }
+                val r = JSONObject(c.inputStream.bufferedReader().readText())
+                val e = prefs.edit().putLong("offset", r.getLong("now") - System.currentTimeMillis())
+                val st = r.optLong("started", 0L)
+                if (st > 0) e.putLong("started", st)                    // the server's record always wins
+                e.apply(); onChange?.invoke()
             }.onFailure { Log.w("Arribha", "trial sync: $it") }
         }.start()
     }

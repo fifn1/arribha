@@ -272,6 +272,7 @@ class StreamActivity : Activity() {
         when (e) {
             is ConnectedEvent -> {
                 connected = true
+                Licensing.addPlayed(0)        // the first game starts the 48-hour trial
                 ui.removeCallbacks(playClock); ui.postDelayed(playClock, 60_000)
                 health(true, null)
                 if (!hasGamepad()) say(L.s("🎮 اليد مو موصولة بالتلفزيون: اضغط زر PS في اليد. إذا ما اشتغلت، اربطها بالتلفزيون (Create + PS)", "🎮 Kol TV'ye bağlı değil: koldaki PS tuşuna bas. Olmazsa kolu TV'ye bağla (Create + PS)"), 12000)
