@@ -31,8 +31,12 @@ object Updater {
                 val latest = j.getString("tag_name").removePrefix("v")
                 if (!newer(latest, current)) return@runCatching
                 val assets = j.getJSONArray("assets")
-                val url = (0 until assets.length()).map { assets.getJSONObject(it) }
-                    .firstOrNull { it.getString("name").endsWith(".apk") }?.getString("browser_download_url") ?: return@runCatching
+                // the APK made for this TV's processor (smaller); otherwise the universal one
+                val apks = (0 until assets.length()).map { assets.getJSONObject(it) }.filter { it.getString("name").endsWith(".apk") }
+                val abi = Build.SUPPORTED_ABIS.firstOrNull { it == "arm64-v8a" || it == "armeabi-v7a" }
+                val url = (apks.firstOrNull { abi != null && it.getString("name").contains(abi) }
+                    ?: apks.firstOrNull { it.getString("name").contains("universal") } ?: apks.firstOrNull())
+                    ?.getString("browser_download_url") ?: return@runCatching
                 a.runOnUiThread {
                     if (a.isFinishing) return@runOnUiThread
                     AlertDialog.Builder(a)
