@@ -41,6 +41,8 @@ class PsnLoginActivity : Activity() {
         web.setBackgroundColor(Color.rgb(12, 16, 28))
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
+        web.settings.allowFileAccess = false
+        web.settings.allowContentAccess = false
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, req: WebResourceRequest): Boolean = catchRedirect(req.url)
             @Deprecated("old devices") override fun shouldOverrideUrlLoading(view: WebView, url: String) = catchRedirect(Uri.parse(url))
@@ -50,7 +52,13 @@ class PsnLoginActivity : Activity() {
     }
 
     private fun catchRedirect(uri: Uri): Boolean {
-        if (!uri.toString().startsWith(REDIRECT)) return false
+        if (!uri.toString().startsWith(REDIRECT)) {
+            // only Sony / PlayStation sign-in pages may open here; anything else is blocked
+            val host = uri.host ?: return true
+            val ok = uri.scheme == "https" && listOf("sonyentertainmentnetwork.com", "sony.com", "playstation.com", "playstation.net")
+                .any { host == it || host.endsWith(".$it") }
+            return !ok
+        }
         val code = uri.getQueryParameter("code") ?: return true
         if (done) return true
         done = true

@@ -320,7 +320,7 @@ class MainActivity : Activity() {
         linkStatus.text = "⏳ جاري الربط..."
         regist?.dispose()
         try {
-            val log = ChiakiLog(ChiakiLog.Level.INFO.value or ChiakiLog.Level.WARNING.value or ChiakiLog.Level.ERROR.value) { _, t -> Log.i("ArribhaRegist", t) }
+            val log = ChiakiLog(ChiakiLog.Level.WARNING.value or ChiakiLog.Level.ERROR.value)  /* INFO prints the link keys */ { _, t -> Log.i("ArribhaRegist", t) }
             regist = Regist(RegistInfo(target, addr, false, null, acc, pin.toInt()), log) { ev ->
                 ui.post {
                     when (ev) {

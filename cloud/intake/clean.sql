@@ -1,1 +1,0 @@
-DELETE FROM health WHERE fw LIKE 'TEST%'; DELETE FROM alerted WHERE k LIKE '%TEST%';
