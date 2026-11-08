@@ -94,6 +94,15 @@ class TranslateEngine(
     private var lastReadAt = 0L
     private var lastReadMs = 0L
     private var emptyLooks = 0
+    private var goneSince = 0L          // first moment the text seemed gone
+    private var shownGood = 0           // pieces on screen that came from a professional source
+
+    /** remove the translation only when the text has really left the screen: two signs, at least 0.7 s apart */
+    private fun maybeGone(now: Long) {
+        if (shownSig.isEmpty()) return
+        if (emptyLooks++ == 0) goneSince = now
+        if (emptyLooks >= 2 && now - goneSince >= 700) { shownSig = ""; shownGood = 0; hide() }
+    }
     private var candGrid: IntArray? = null
     private var candSince = 0L
 
@@ -198,14 +207,13 @@ class TranslateEngine(
         // 1) quick look: any letters? changed since last read?
         val look = quickLook(bm)
         if (look.score < MIN_TEXT_SCORE || look.area == null) {
-            // text gone: remove the Arabic only after two empty looks in a row (no flicker on one bad frame)
-            if (++emptyLooks >= 2 && shownSig.isNotEmpty()) { shownSig = ""; hide() }
+            // text may be gone: the translation leaves only once that is sure (see maybeGone)
+            maybeGone(now)
             lastGrid = null; candGrid = null
             return lookEvery + extraDelay
         }
-        emptyLooks = 0
         val prev = lastGrid
-        if (prev != null && gridChange(prev, look.grid) < 0.12) { candGrid = null; return lookEvery + extraDelay }
+        if (prev != null && gridChange(prev, look.grid) < 0.12) { candGrid = null; emptyLooks = 0; return lookEvery + extraDelay }
         // new text: wait until it stops changing (typing effect, fading in), so only the final line is shown
         val cand = candGrid
         if (cand == null || gridChange(cand, look.grid) >= 0.08) {
@@ -224,7 +232,8 @@ class TranslateEngine(
         val area = look.area
         val vkey = visualKey(bm, area)
         synchronized(seenPictures) { seenPictures[vkey] }?.let { (sig, shown) ->
-            if (sig != shownSig) { shownSig = sig; ui.post { show(shown) } }
+            emptyLooks = 0
+            if (sig != shownSig) { shownSig = sig; shownGood = 0; ui.post { show(shown) } }
             return lookEvery
         }
         val crop = Bitmap.createBitmap(bm, area.left, area.top, area.width(), area.height())
@@ -240,13 +249,18 @@ class TranslateEngine(
         val pieces = pick(result, bm, area.left, area.top, sx, sy, offY)
         crop.recycle()
         val sig = pieces.joinToString("|") { it.text.lowercase().replace(Regex("[^a-z0-9 ]"), "") }
-        if (sig.isEmpty()) {
-            if (shownSig.isNotEmpty()) { shownSig = ""; hide() }
+        if (sig.isEmpty()) {             // one empty read is not proof the line left (busy background, half-faded text)
+            if (shownSig.isNotEmpty()) lastGrid = null   // look again soon to confirm, instead of keeping a stale line
+            maybeGone(now)
             return lookEvery
         }
+        emptyLooks = 0
         if (shownSig.isNotEmpty() && sig.startsWith(shownSig.take(max(8, shownSig.length - 4))) && sig.length > shownSig.length)
             Log.d(TAG, "line grew: $sig")
         if (similar(sig, shownSig) >= 0.85) return lookEvery
+        // the same line read a little differently: never swap a professional translation for a weaker one
+        val good = pieces.count { isGood(it.text) }
+        if (shownGood > 0 && good < shownGood && similar(sig, shownSig) >= 0.7) return lookEvery
         if (!modelReady) return 500
 
         // 4) translate and show
@@ -255,6 +269,7 @@ class TranslateEngine(
             Shown(p.rect, p.speaker?.let { nameAr(it) }, p.speakerColor, translatePiece(p.text), p.icons, p.textColor, p.bgColor, p.lineH, p.patch)
         }
         shownSig = sig
+        shownGood = good
         synchronized(seenPictures) { seenPictures[vkey] = sig to shown }
         ui.post { show(shown) }
         Log.i(TAG, "read ${ocrMs}ms + translate ${SystemClock.uptimeMillis() - t1}ms (area ${area.width()}x${area.height()}): " +
@@ -642,10 +657,17 @@ class TranslateEngine(
         if (!L.isTr) GamePacks.name(name)?.let { return it }
         val key = L.lang + ":" + name.lowercase()
         names.getString(key, null)?.let { return it }
+        if (!L.isTr) names.getString(name.lowercase(), null)?.let { names.edit().putString(key, it).apply(); return it }
         val pretty = name.lowercase().replaceFirstChar { it.uppercase() }
         val ar = mt(pretty)
         names.edit().putString(key, ar).apply()
         return ar
+    }
+
+    /** a line we hold a professional translation for (game pack, shared library, hand-written) */
+    private fun isGood(raw: String): Boolean {
+        val en = raw.replace(Regex("^[0-9]\\s+(?=[A-Z])"), "")
+        return (!L.isTr && GamePacks.find(en) != null) || Library.find(GamePacks.hash(en)) != null || Phrasebook.lookup(en) != null
     }
 
     private fun translatePiece(raw: String): String {
