@@ -282,8 +282,8 @@ function privacy(tr) {
 <h2>البث</h2><p>صورة اللعبة تنتقل مباشرة من البلايستيشن إلى التلفزيون داخل شبكة منزلك، ولا تمر بأي خادم.</p>
 <h2>الشراء</h2><p>الدفع يتم بالكامل عن طريق Google Play، ولا نرى بيانات بطاقتك أو حسابك البنكي.</p>
 <h2>عنوان الإنترنت والحماية</h2><p>نستخدم عنوان الإنترنت لحظيًا لتحديد عدد الطلبات اليومية ومنع الإساءة، ويُحذف يوميًا. كل الاتصالات مشفّرة (HTTPS).</p>
-<h2>حذف البيانات والتواصل</h2><p>لحذف بياناتك أو لأي سؤال: <a href="mailto:d.fifn1@gmail.com">d.fifn1@gmail.com</a>. التطبيق غير موجّه لمن هم دون 13 سنة.</p>
-<div class="en"><h2>Privacy (English)</h2><p>Tercüman (by Taketore) collects: English game text without a translation yet, with the game name (not linked to you); a one-way hash of the device ID to track the 3-hour free trial; connection reports (success/failure, console firmware, error reason); and, only for phone sign-in, the PlayStation account ID, passed through our server and deleted on delivery or within 10 minutes. English text is deleted after AI translation; only a fingerprint and the translation are published. We never sell or share data. Passwords go to Sony only; link keys stay on your TV; gameplay video stays in your home network. Payments are handled entirely by Google Play. IP addresses are used only for daily rate limits and deleted daily. All traffic uses HTTPS. To delete your data or ask anything: d.fifn1@gmail.com. Not directed at children under 13.</p></div>
+<h2>حذف البيانات والتواصل</h2><p>لحذف بياناتك أو لأي سؤال: <a href="mailto:hello@taketore.com">hello@taketore.com</a>. التطبيق غير موجّه لمن هم دون 13 سنة.</p>
+<div class="en"><h2>Privacy (English)</h2><p>Tercüman (by Taketore) collects: English game text without a translation yet, with the game name (not linked to you); a one-way hash of the device ID to track the 3-hour free trial; connection reports (success/failure, console firmware, error reason); and, only for phone sign-in, the PlayStation account ID, passed through our server and deleted on delivery or within 10 minutes. English text is deleted after AI translation; only a fingerprint and the translation are published. We never sell or share data. Passwords go to Sony only; link keys stay on your TV; gameplay video stays in your home network. Payments are handled entirely by Google Play. IP addresses are used only for daily rate limits and deleted daily. All traffic uses HTTPS. To delete your data or ask anything: hello@taketore.com. Not directed at children under 13.</p></div>
 </body></html>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
 }
@@ -377,7 +377,7 @@ function privacyTr() {
 <h2>Yayın</h2><p>Oyun görüntüsü PlayStation'dan TV'ye doğrudan ev ağınız içinde aktarılır; hiçbir sunucudan geçmez.</p>
 <h2>Satın alma</h2><p>Ödeme tamamen Google Play üzerinden yapılır; kart ya da banka bilgilerinizi görmeyiz.</p>
 <h2>IP adresi ve güvenlik</h2><p>IP adresi yalnızca anlık olarak günlük sınırlar ve kötüye kullanımı önlemek için kullanılır ve her gün silinir. Tüm bağlantılar şifrelidir (HTTPS).</p>
-<h2>Veri silme ve iletişim</h2><p>Verilerinizin silinmesi ya da her türlü soru için: <a href="mailto:d.fifn1@gmail.com">d.fifn1@gmail.com</a>. Uygulama 13 yaşından küçük çocuklara yönelik değildir.</p>
+<h2>Veri silme ve iletişim</h2><p>Verilerinizin silinmesi ya da her türlü soru için: <a href="mailto:hello@taketore.com">hello@taketore.com</a>. Uygulama 13 yaşından küçük çocuklara yönelik değildir.</p>
 </body></html>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
 }

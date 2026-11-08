@@ -33,6 +33,8 @@ import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
 
 /** Home screen in Arabic: link the PlayStation once, then one button to play. */
+private const val CONTACT = "hello@taketore.com"
+
 class MainActivity : Activity() {
     private lateinit var store: Store
     private val ui = Handler(Looper.getMainLooper())
@@ -201,6 +203,12 @@ class MainActivity : Activity() {
             setOnClickListener { startActivity(Intent(this@MainActivity, WelcomeActivity::class.java)) }
             setOnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Color.WHITE else Color.rgb(120, 136, 168)) }
         })
+        footer.addView(text("•", 13f, Color.rgb(96, 110, 138)), LinearLayout.LayoutParams(-2, -2).apply { setMargins(8, 0, 8, 0) })
+        footer.addView(text(L.s("تواصل معنا", "Bize ulaşın"), 13f, Color.rgb(120, 136, 168)).apply {
+            isFocusable = true; setPadding(20, 8, 20, 8)
+            setOnClickListener { contact() }
+            setOnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Color.WHITE else Color.rgb(120, 136, 168)) }
+        })
         // quiet copyright line at the very bottom
         col.addView(text("© ${java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)} Taketore  ·  " + L.s("جميع الحقوق محفوظة", "Tüm hakları saklıdır"),
             11f, Color.rgb(78, 90, 114)).apply { letterSpacing = 0.04f }, lp(10))
@@ -323,9 +331,19 @@ class MainActivity : Activity() {
         }.start()
     }
 
+    /** one address for everything: questions, problems, advertising */
+    private fun contact() {
+        val img = android.widget.ImageView(this).apply {
+            setImageBitmap(qr("mailto:$CONTACT?subject=" + android.net.Uri.encode(L.appName), 300)); setPadding(30, 20, 30, 20) }
+        android.app.AlertDialog.Builder(this).setTitle(L.s("تواصل معنا", "Bize ulaşın"))
+            .setMessage(L.s("مشكلة، اقتراح، أو تبغى تعلن معنا؟ امسح الرمز بجوالك أو راسلنا على:\n\n$CONTACT",
+                "Sorun, öneri ya da reklam mı? Kodu telefonunla tara ya da yaz:\n\n$CONTACT"))
+            .setView(img).setPositiveButton(L.s("تم", "Tamam"), null).show().focusMain()
+    }
+
     /** empty ad tile: how to advertise, with a QR that opens an email on the phone */
     private fun adInfo() {
-        val mail = "d.fifn1@gmail.com"
+        val mail = CONTACT
         val img = android.widget.ImageView(this).apply {
             setImageBitmap(qr("mailto:$mail?subject=" + android.net.Uri.encode(L.s("إعلان في ترجمان", "Tercüman reklam")), 300)); setPadding(30, 20, 30, 20) }
         android.app.AlertDialog.Builder(this).setTitle(L.s("أعلن في ترجمان", "Tercüman'da reklam ver"))
