@@ -270,13 +270,20 @@ function privacy(tr) {
   const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ترجمان - سياسة الخصوصية</title><style>body{font-family:system-ui,Tahoma,sans-serif;max-width:720px;margin:auto;padding:24px;line-height:1.9;color:#1b2333;background:#fff}h1{font-size:28px}h2{font-size:19px;margin-top:28px}.en{direction:ltr;text-align:left;color:#444;border-top:1px solid #ddd;margin-top:40px;padding-top:16px}</style></head><body>
 <h1>سياسة الخصوصية لتطبيق ترجمان</h1>
-<p>ترجمان تطبيق مجاني يعرض ألعاب البلايستيشن على التلفزيون ويترجم نصوصها الإنجليزية إلى العربية.</p>
-<h2>ما الذي نجمعه؟</h2><p>نجمع فقط <b>نصوص الألعاب الإنجليزية</b> التي ليس لها ترجمة احترافية بعد، لنترجمها مرة واحدة لكل اللاعبين. لا نجمع اسمك ولا بريدك ولا صورًا ولا صوتًا ولا أي معلومات شخصية.</p>
-<h2>ماذا نفعل بها؟</h2><p>تُترجم آليًا بذكاء اصطناعي، ثم <b>يُحذف النص الإنجليزي</b> ويُنشر فقط «بصمة» الجملة مع ترجمتها العربية.</p>
-<h2>تسجيل الدخول في PlayStation</h2><p>كلمة المرور تُكتب في صفحة Sony الرسمية وتذهب إلى Sony مباشرة، ولا تمر بخوادمنا. عند التسجيل من الجوال يمر بخادمنا رمز دخول مؤقت يُستخدم مرة واحدة ويُحذف فورًا (وينتهي خلال 10 دقائق).</p>
-<h2>البث</h2><p>صورة اللعبة تنتقل مباشرة من جهاز البلايستيشن إلى التلفزيون داخل شبكة منزلك، ولا تمر بأي خادم.</p>
-<h2>عنوان الإنترنت</h2><p>نستخدم عنوان الإنترنت لحظيًا لتحديد عدد الإرسالات اليومية ومنع الإزعاج، ويُحذف يوميًا.</p>
-<div class="en"><h2>Privacy (English)</h2><p>Tercüman only collects English game text that has no professional Arabic translation yet. It is machine-translated, then the English is deleted; only a fingerprint and the Arabic are published. No personal data is collected. PlayStation passwords go to Sony only. Gameplay video stays inside your home network. IP addresses are used only for daily rate limits and are deleted daily.</p></div>
+<p>آخر تحديث: 8 نوفمبر 2026. ترجمان (Tercüman) من Taketore، تطبيق يعرض ألعاب البلايستيشن على تلفزيون Android TV ويترجم نصوصها الإنجليزية إلى العربية أو التركية.</p>
+<h2>ما الذي نجمعه؟</h2><ul>
+<li><b>نصوص الألعاب الإنجليزية</b> التي ليس لها ترجمة بعد، مع اسم اللعبة، لنترجمها مرة واحدة لكل اللاعبين. لا ترتبط بهويتك.</li>
+<li><b>بصمة الجهاز</b>: ملخص مشفّر لا يمكن عكسه لمعرّف الجهاز، نحسب به مدة التجربة المجانية (3 ساعات) ونمنع تكرارها.</li>
+<li><b>تقرير الاتصال</b>: هل نجح الاتصال بالبلايستيشن، وإصدار نظامه، وسبب الخطأ إن وجد، لنكتشف الأعطال بسرعة.</li>
+<li><b>رقم حساب PlayStation</b>: عند التسجيل من الجوال فقط، يمر بخادمنا مؤقتًا لتوصيله للتلفزيون، ويُحذف فور استلامه أو خلال 10 دقائق.</li>
+</ul><p>لا نجمع اسمك ولا بريدك ولا موقعك ولا صورًا ولا صوتًا ولا جهات اتصال.</p>
+<h2>ماذا نفعل بها؟</h2><p>النصوص تُترجم بالذكاء الاصطناعي وتُدقق، ثم <b>يُحذف النص الإنجليزي</b> ويُنشر فقط «بصمة» الجملة مع ترجمتها. لا نبيع أي بيانات ولا نشاركها مع أحد.</p>
+<h2>تسجيل الدخول في PlayStation</h2><p>كلمة المرور تُكتب في صفحة Sony الرسمية وتذهب إلى Sony مباشرة، ولا تمر بخوادمنا. مفاتيح الربط بالبلايستيشن تبقى في تلفزيونك فقط.</p>
+<h2>البث</h2><p>صورة اللعبة تنتقل مباشرة من البلايستيشن إلى التلفزيون داخل شبكة منزلك، ولا تمر بأي خادم.</p>
+<h2>الشراء</h2><p>الدفع يتم بالكامل عن طريق Google Play، ولا نرى بيانات بطاقتك أو حسابك البنكي.</p>
+<h2>عنوان الإنترنت والحماية</h2><p>نستخدم عنوان الإنترنت لحظيًا لتحديد عدد الطلبات اليومية ومنع الإساءة، ويُحذف يوميًا. كل الاتصالات مشفّرة (HTTPS).</p>
+<h2>حذف البيانات والتواصل</h2><p>لحذف بياناتك أو لأي سؤال: <a href="mailto:d.fifn1@gmail.com">d.fifn1@gmail.com</a>. التطبيق غير موجّه لمن هم دون 13 سنة.</p>
+<div class="en"><h2>Privacy (English)</h2><p>Tercüman (by Taketore) collects: English game text without a translation yet, with the game name (not linked to you); a one-way hash of the device ID to track the 3-hour free trial; connection reports (success/failure, console firmware, error reason); and, only for phone sign-in, the PlayStation account ID, passed through our server and deleted on delivery or within 10 minutes. English text is deleted after AI translation; only a fingerprint and the translation are published. We never sell or share data. Passwords go to Sony only; link keys stay on your TV; gameplay video stays in your home network. Payments are handled entirely by Google Play. IP addresses are used only for daily rate limits and deleted daily. All traffic uses HTTPS. To delete your data or ask anything: d.fifn1@gmail.com. Not directed at children under 13.</p></div>
 </body></html>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
 }
@@ -358,12 +365,19 @@ function privacyTr() {
   const html = `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Tercüman - Gizlilik Politikası</title><style>body{font-family:system-ui,sans-serif;max-width:720px;margin:auto;padding:24px;line-height:1.8;color:#1b2333;background:#fff}h1{font-size:28px}h2{font-size:19px;margin-top:28px}</style></head><body>
 <h1>Tercüman Gizlilik Politikası</h1>
-<p>Tercüman, PlayStation oyunlarını Android TV'de oynatan ve oyunların İngilizce metinlerini anında çeviren ücretsiz bir uygulamadır.</p>
-<h2>Ne topluyoruz?</h2><p>Yalnızca henüz profesyonel çevirisi olmayan <b>İngilizce oyun metinlerini</b> topluyoruz; böylece tüm oyuncular için bir kez çevrilirler. Adınızı, e-postanızı, görüntü, ses veya herhangi bir kişisel bilgiyi toplamayız.</p>
-<h2>Ne yapıyoruz?</h2><p>Metinler yapay zekâ ile çevrilir, ardından <b>İngilizce metin silinir</b>; yalnızca cümlenin «parmak izi» ve çevirisi yayımlanır.</p>
-<h2>PlayStation girişi</h2><p>Şifreniz Sony'nin resmî sayfasına yazılır ve doğrudan Sony'ye gider; sunucularımızdan geçmez. Telefondan girişte sunucumuzdan yalnızca bir kez kullanılan geçici bir giriş kodu geçer ve hemen silinir (10 dakikada geçersiz olur).</p>
+<p>Son güncelleme: 8 Kasım 2026. Tercüman (Taketore), PlayStation oyunlarını Android TV'de gösteren ve oyunların İngilizce metinlerini Türkçeye ya da Arapçaya çeviren bir uygulamadır.</p>
+<h2>Ne topluyoruz?</h2><ul>
+<li>Henüz çevirisi olmayan <b>İngilizce oyun metinleri</b> ve oyunun adı; tüm oyuncular için bir kez çevrilmeleri için. Kimliğinizle ilişkilendirilmez.</li>
+<li><b>Cihaz özeti</b>: cihaz kimliğinin geri döndürülemez bir özeti (hash); 3 saatlik ücretsiz deneme süresini saymak ve tekrarını önlemek için.</li>
+<li><b>Bağlantı raporu</b>: PlayStation bağlantısının başarılı olup olmadığı, sistem sürümü ve varsa hata nedeni; arızaları hızla bulmak için.</li>
+<li><b>PlayStation hesap numarası</b>: yalnızca telefondan girişte, TV'ye iletilmek üzere sunucumuzdan geçici olarak geçer ve teslim edilince ya da en geç 10 dakikada silinir.</li>
+</ul><p>Adınızı, e-postanızı, konumunuzu, görüntü, ses ya da kişi listenizi toplamayız.</p>
+<h2>Ne yapıyoruz?</h2><p>Metinler yapay zekâ ile çevrilip denetlenir, ardından <b>İngilizce metin silinir</b>; yalnızca cümlenin «parmak izi» ve çevirisi yayımlanır. Hiçbir veriyi satmayız ve kimseyle paylaşmayız.</p>
+<h2>PlayStation girişi</h2><p>Şifreniz Sony'nin resmî sayfasına yazılır ve doğrudan Sony'ye gider; sunucularımızdan geçmez. PlayStation bağlantı anahtarları yalnızca TV'nizde kalır.</p>
 <h2>Yayın</h2><p>Oyun görüntüsü PlayStation'dan TV'ye doğrudan ev ağınız içinde aktarılır; hiçbir sunucudan geçmez.</p>
-<h2>Deneme süresi ve IP adresi</h2><p>Ücretsiz deneme süresi, cihaz kimliğinin geri döndürülemez bir özeti (hash) ile saklanır. IP adresi yalnızca anlık olarak günlük sınırlar için kullanılır ve her gün silinir.</p>
+<h2>Satın alma</h2><p>Ödeme tamamen Google Play üzerinden yapılır; kart ya da banka bilgilerinizi görmeyiz.</p>
+<h2>IP adresi ve güvenlik</h2><p>IP adresi yalnızca anlık olarak günlük sınırlar ve kötüye kullanımı önlemek için kullanılır ve her gün silinir. Tüm bağlantılar şifrelidir (HTTPS).</p>
+<h2>Veri silme ve iletişim</h2><p>Verilerinizin silinmesi ya da her türlü soru için: <a href="mailto:d.fifn1@gmail.com">d.fifn1@gmail.com</a>. Uygulama 13 yaşından küçük çocuklara yönelik değildir.</p>
 </body></html>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
 }
