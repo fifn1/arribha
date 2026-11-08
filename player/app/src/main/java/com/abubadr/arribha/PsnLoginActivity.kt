@@ -36,6 +36,7 @@ class PsnLoginActivity : Activity() {
 
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
+        L.init(this)
         CookieManager.getInstance().removeAllCookies(null)
         val web = WebView(this)
         web.setBackgroundColor(Color.rgb(12, 16, 28))

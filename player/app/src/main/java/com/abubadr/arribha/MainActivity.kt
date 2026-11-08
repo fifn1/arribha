@@ -53,19 +53,21 @@ class MainActivity : Activity() {
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
         store = Store(this)
+        L.init(this)
+        if (!L.chosen(this)) { startActivityForResult(Intent(this, LanguageActivity::class.java), 42) }
         Licensing.init(this)
         Licensing.onChange = { ui.post { refresh() } }
-        if (!store.welcomed) startActivity(Intent(this, WelcomeActivity::class.java))
+        if (L.chosen(this) && !store.welcomed) startActivity(Intent(this, WelcomeActivity::class.java))
         else Updater.check(this)
 
         val col = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            layoutDirection = L.dir
             setPadding(100, 30, 100, 24)
         }
-        val t1 = text("عرّبها", 56f, Color.WHITE).apply { typeface = android.graphics.Typeface.DEFAULT_BOLD }
-        val t2 = text("ترجمة عربية لألعاب البلايستيشن", 17f, Color.rgb(143, 163, 199))
+        val t1 = text(L.appName, 56f, Color.WHITE).apply { typeface = android.graphics.Typeface.DEFAULT_BOLD }
+        val t2 = text(L.s("ترجمة فورية لألعاب البلايستيشن", "PlayStation oyunları için anlık çeviri"), 17f, Color.rgb(143, 163, 199))
         col.addView(t1); col.addView(t2, lp(2)); titleViews = listOf(t1, t2)
         consoleLine = text("", 18f, Color.rgb(205, 216, 236)).apply {
             background = GradientDrawable().apply { cornerRadius = 100f; setColor(Color.argb(60, 255, 255, 255)) }
@@ -74,48 +76,48 @@ class MainActivity : Activity() {
         col.addView(consoleLine, lp(18))
 
         // controller not connected to the TV: one tap opens the TV's pairing screen
-        padBtn = button("ربط اليد بالتلفزيون", false).apply {
+        padBtn = button(L.s("ربط اليد بالتلفزيون", "Kolu TV'ye bağla"), false).apply {
             setOnClickListener {
                 openPairing()
-                android.widget.Toast.makeText(this@MainActivity, "اضغط Create وPS مع بعض لين يرمش الضوء، واختر «إضافة»", android.widget.Toast.LENGTH_LONG).show()
+                android.widget.Toast.makeText(this@MainActivity, L.s("اضغط Create وPS مع بعض لين يرمش الضوء، واختر «إضافة»", "Işık yanıp sönene kadar Create ve PS tuşlarına birlikte bas, sonra «Ekle»yi seç"), android.widget.Toast.LENGTH_LONG).show()
             }
         }
         col.addView(padBtn, lp(12))
-        playBtn = button("ابدأ اللعب", true).also { col.addView(it, LinearLayout.LayoutParams(560, -2).apply { topMargin = 18; gravity = Gravity.CENTER_HORIZONTAL }) }
+        playBtn = button(L.s("ابدأ اللعب", "Oynamaya başla"), true).also { col.addView(it, LinearLayout.LayoutParams(560, -2).apply { topMargin = 18; gravity = Gravity.CENTER_HORIZONTAL }) }
         playBtn.setOnClickListener { if (Licensing.canPlay) play() else paywall() }
 
         licenseLine = text("", 14f, Color.rgb(143, 163, 199)).also { col.addView(it, lp(6)) }
 
         // --- one-time linking ---
         linkBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL }
-        linkBox.addView(text("ربط البلايستيشن — مرة وحدة", 22f, Color.WHITE), lp(14))
+        linkBox.addView(text(L.s("ربط البلايستيشن — مرة وحدة", "PlayStation'ı bağla — tek seferlik"), 22f, Color.WHITE), lp(14))
         // two ways to sign in, side by side: on the TV, or by scanning with the phone
         val choices = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
         fun card() = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
             background = GradientDrawable().apply { cornerRadius = 36f; setColor(Color.argb(28, 255, 255, 255)) }
-            setPadding(40, 26, 40, 26)
+            setPadding(40, 26, 40, 26); minimumHeight = 330
         }
         val tvCard = card()
-        tvCard.addView(text("من التلفزيون", 20f, Color.WHITE))
-        tvCard.addView(text("سجّل دخولك هنا بالريموت", 14f, Color.rgb(143, 163, 199)), lp(4))
-        val psnBtn = button("تسجيل الدخول", true).apply { setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f); setPadding(30, 14, 30, 14) }
+        tvCard.addView(text(L.s("من التلفزيون", "TV'den"), 20f, Color.WHITE))
+        tvCard.addView(text(L.s("سجّل دخولك هنا بالريموت", "Kumandayla burada giriş yap"), 14f, Color.rgb(143, 163, 199)), lp(4))
+        val psnBtn = button(L.s("تسجيل الدخول", "Giriş yap"), true).apply { setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f); setPadding(30, 14, 30, 14) }
         psnBtn.setOnClickListener { startActivityForResult(Intent(this, PsnLoginActivity::class.java), 41) }
         tvCard.addView(psnBtn, LinearLayout.LayoutParams(340, -2).apply { topMargin = 18; gravity = Gravity.CENTER_HORIZONTAL })
         val phoneCard = card()
-        phoneCard.addView(text("من الجوال", 20f, Color.WHITE))
-        phoneCard.addView(text("امسح الرمز بكاميرا جوالك", 14f, Color.rgb(143, 163, 199)), lp(4))
-        phoneCard.addView(android.widget.ImageView(this).apply { setImageBitmap(qr("https://arribha-intake.d-fifn1.workers.dev/link?s=$linkSid", 190)) },
-            LinearLayout.LayoutParams(190, 190).apply { topMargin = 12; gravity = Gravity.CENTER_HORIZONTAL })
-        choices.addView(tvCard, LinearLayout.LayoutParams(440, 330))
-        choices.addView(text("أو", 18f, Color.rgb(143, 163, 199)), LinearLayout.LayoutParams(-2, -2).apply { setMargins(30, 0, 30, 0) })
-        choices.addView(phoneCard, LinearLayout.LayoutParams(440, 330))
+        phoneCard.addView(text(L.s("من الجوال", "Telefondan"), 20f, Color.WHITE))
+        phoneCard.addView(text(L.s("امسح الرمز بكاميرا جوالك", "Kodu telefonunun kamerasıyla tara"), 14f, Color.rgb(143, 163, 199)), lp(4))
+        phoneCard.addView(android.widget.ImageView(this).apply { setImageBitmap(qr("https://arribha-intake.d-fifn1.workers.dev/link?s=$linkSid&lang=${L.lang}", 170)) },
+            LinearLayout.LayoutParams(170, 170).apply { topMargin = 12; gravity = Gravity.CENTER_HORIZONTAL })
+        choices.addView(tvCard, LinearLayout.LayoutParams(460, -2))
+        choices.addView(text(L.s("أو", "veya"), 18f, Color.rgb(143, 163, 199)), LinearLayout.LayoutParams(-2, -2).apply { setMargins(30, 0, 30, 0) })
+        choices.addView(phoneCard, LinearLayout.LayoutParams(460, -2))
         linkBox.addView(choices, lp(16))
         // the Account ID is filled in by the sign-in; players never need to see it
-        accountField = field("رقم حساب PSN (Account ID)", InputType.TYPE_CLASS_TEXT).also { it.visibility = View.GONE; linkBox.addView(it, wide(16)) }
-        linkBox.addView(text("في البلايستيشن: الإعدادات ← النظام ← اللعب عن بُعد ← إقران الجهاز", 16f, Color.rgb(143, 163, 199)), lp(18))
-        pinField = field("رقم الربط (8 أرقام)", InputType.TYPE_CLASS_NUMBER).also { linkBox.addView(it, wide(8)) }
-        val linkBtn = button("ربط", true)
+        accountField = field(L.s("رقم حساب PSN (Account ID)", "PSN hesap numarası (Account ID)"), InputType.TYPE_CLASS_TEXT).also { it.visibility = View.GONE; linkBox.addView(it, wide(16)) }
+        linkBox.addView(text(L.s("في البلايستيشن: الإعدادات ← النظام ← اللعب عن بُعد ← إقران الجهاز", "PlayStation'da: Ayarlar → Sistem → Uzaktan Oynatma → Cihazı Bağla"), 16f, Color.rgb(143, 163, 199)), lp(18))
+        pinField = field(L.s("رقم الربط (8 أرقام)", "Bağlantı kodu (8 haneli)"), InputType.TYPE_CLASS_NUMBER).also { linkBox.addView(it, wide(8)) }
+        val linkBtn = button(L.s("ربط", "Bağla"), true)
         linkBtn.setOnClickListener { link() }
         linkBox.addView(linkBtn, LinearLayout.LayoutParams(420, -2).apply { topMargin = 20; gravity = Gravity.CENTER_HORIZONTAL })
         linkStatus = text("", 17f, Color.rgb(250, 205, 95)).also { linkBox.addView(it, lp(10)) }
@@ -125,9 +127,9 @@ class MainActivity : Activity() {
         settingsBox = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
         val tBtn = button("", false); val aBtn = button("", false); val sBtn = button("", false)
         fun refreshSettings() {
-            tBtn.text = if (store.translateOn) "الترجمة: تعمل" else "الترجمة: متوقفة"
-            aBtn.text = if (store.readFullScreen) "الشاشة كاملة" else "الحوارات فقط"
-            sBtn.text = "الخط: " + arrayOf("صغير", "متوسط", "كبير")[store.textSize]
+            tBtn.text = if (store.translateOn) L.s("الترجمة: تعمل", "Çeviri: Açık") else L.s("الترجمة: متوقفة", "Çeviri: Kapalı")
+            aBtn.text = if (store.readFullScreen) L.s("الشاشة كاملة", "Tüm ekran") else L.s("الحوارات فقط", "Yalnızca diyaloglar")
+            sBtn.text = L.s("الخط: ", "Yazı: ") + arrayOf(L.s("صغير", "Küçük"), L.s("متوسط", "Orta"), L.s("كبير", "Büyük"))[store.textSize]
         }
         tBtn.setOnClickListener { store.translateOn = !store.translateOn; refreshSettings() }
         aBtn.setOnClickListener { store.readFullScreen = !store.readFullScreen; refreshSettings() }
@@ -137,7 +139,8 @@ class MainActivity : Activity() {
         col.addView(settingsBox, lp(16))
 
         // --- sponsors: three tiles, filled from sponsors.json on GitHub ---
-        col.addView(text("رعاة", 12f, Color.rgb(96, 110, 138)), lp(16))
+        sponsorLabel = text(L.s("إعلان", "Reklam"), 12f, Color.rgb(96, 110, 138))
+        col.addView(sponsorLabel, lp(16))
         sponsorRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
         col.addView(sponsorRow, lp(6))
         loadSponsors()
@@ -145,16 +148,16 @@ class MainActivity : Activity() {
         // --- footer: quiet details ---
         deviceLine = text("", 13f, Color.rgb(96, 110, 138))
         col.addView(deviceLine, lp(16))
-        val relink = text("إلغاء الربط", 13f, Color.rgb(120, 136, 168)).apply {
+        val relink = text(L.s("إلغاء الربط", "Bağlantıyı kaldır"), 13f, Color.rgb(120, 136, 168)).apply {
             isFocusable = true; setPadding(20, 8, 20, 8)
             setOnClickListener {
                 android.app.AlertDialog.Builder(this@MainActivity)
-                    .setMessage("تبغى تلغي ربط البلايستيشن وتسجيل الدخول من هذا التلفزيون؟")
-                    .setPositiveButton("إلغاء الربط") { _, _ ->
+                    .setMessage(L.s("تبغى تلغي ربط البلايستيشن وتسجيل الدخول من هذا التلفزيون؟", "PlayStation bağlantısı ve oturum bu TV'den kaldırılsın mı?"))
+                    .setPositiveButton(L.s("إلغاء الربط", "Bağlantıyı kaldır")) { _, _ ->
                         store.registKey = null; store.morning = null; store.accountId = ""; store.consoleId = ""
                         accountField.setText(""); linkStatus.text = ""; refresh()
                     }
-                    .setNegativeButton("رجوع", null).show().focusMain()
+                    .setNegativeButton(L.s("رجوع", "Geri"), null).show().focusMain()
             }
             setOnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Color.WHITE else Color.rgb(120, 136, 168)) }
         }
@@ -162,11 +165,20 @@ class MainActivity : Activity() {
         col.addView(footer, lp(2))
         footer.addView(relink)
         footer.addView(text("•", 13f, Color.rgb(96, 110, 138)), LinearLayout.LayoutParams(-2, -2).apply { setMargins(8, 0, 8, 0) })
-        footer.addView(text("طريقة الاستخدام", 13f, Color.rgb(120, 136, 168)).apply {
+        footer.addView(text(L.s("Türkçe", "العربية"), 13f, Color.rgb(120, 136, 168)).apply {
+            isFocusable = true; setPadding(20, 8, 20, 8)
+            setOnClickListener { L.set(this@MainActivity, if (L.isTr) "ar" else "tr"); restartApp() }
+            setOnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Color.WHITE else Color.rgb(120, 136, 168)) }
+        })
+        footer.addView(text("•", 13f, Color.rgb(96, 110, 138)), LinearLayout.LayoutParams(-2, -2).apply { setMargins(8, 0, 8, 0) })
+        footer.addView(text(L.s("طريقة الاستخدام", "Nasıl kullanılır"), 13f, Color.rgb(120, 136, 168)).apply {
             isFocusable = true; setPadding(20, 8, 20, 8)
             setOnClickListener { startActivity(Intent(this@MainActivity, WelcomeActivity::class.java)) }
             setOnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Color.WHITE else Color.rgb(120, 136, 168)) }
         })
+        // quiet copyright line at the very bottom
+        col.addView(text("© ${java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)} Taketore  ·  " + L.s("جميع الحقوق محفوظة", "Tüm hakları saklıdır"),
+            11f, Color.rgb(78, 90, 114)).apply { letterSpacing = 0.04f }, lp(10))
 
         setContentView(ScrollView(this).apply {
             isFillViewport = true
@@ -176,7 +188,7 @@ class MainActivity : Activity() {
         accountField.setText(store.accountId)
 
         if (store.tier < 0) {
-            deviceLine.text = "⏳ أفحص قوة التلفزيون..."
+            deviceLine.text = L.s("⏳ أفحص قوة التلفزيون...", "⏳ TV'nin gücü kontrol ediliyor...")
             Thread {
                 val r = DeviceCheck.run(this)
                 store.tier = r.tier
@@ -191,13 +203,14 @@ class MainActivity : Activity() {
     @Deprecated("simple result")
     override fun onActivityResult(req: Int, res: Int, data: Intent?) {
         super.onActivityResult(req, res, data)
+        if (req == 42) { recreate(); if (!store.welcomed) startActivity(Intent(this, WelcomeActivity::class.java)); return }
         if (req != 41) return
         val id = data?.getStringExtra(PsnLoginActivity.EXTRA_ACCOUNT_ID)
         if (res == RESULT_OK && id != null) {
             store.accountId = id; accountField.setText(id)
-            linkStatus.text = "✓ تم تسجيل الدخول. باقي رقم الربط من البلايستيشن"
+            linkStatus.text = L.s("✓ تم تسجيل الدخول. باقي رقم الربط من البلايستيشن", "✓ Giriş yapıldı. Şimdi PlayStation'daki bağlantı kodunu gir")
             pinField.requestFocus()
-        } else linkStatus.text = "ما اكتمل تسجيل الدخول، جرّب مرة ثانية"
+        } else linkStatus.text = L.s("ما اكتمل تسجيل الدخول، جرّب مرة ثانية", "Giriş tamamlanamadı, tekrar dene")
     }
 
     private var titleViews: List<View> = emptyList()
@@ -220,16 +233,17 @@ class MainActivity : Activity() {
     }
 
     private lateinit var sponsorRow: LinearLayout
+    private lateinit var sponsorLabel: TextView
 
     private fun paywall() {
-        val price = Licensing.price ?: "9.99 ر.س"
+        val price = Licensing.price ?: L.s("9.99 ر.س", "")
         android.app.AlertDialog.Builder(this)
-            .setTitle("فعّل عرّبها مدى الحياة")
-            .setMessage("انتهت تجربتك المجانية (3 ساعات لعب).\n\nادفع مرة وحدة بس $price وتلعب بالعربي مدى الحياة، مع كل التحديثات.\n\nالدفع آمن عن طريق Google Play: بالبطاقة، أو رصيد الجوال، أو بطاقات Google Play، حسب المتاح في بلدك.")
-            .setPositiveButton("شراء $price") { _, _ ->
-                if (!Licensing.buy(this)) android.widget.Toast.makeText(this, "متجر Google Play غير جاهز، جرّب بعد شوي", android.widget.Toast.LENGTH_LONG).show()
+            .setTitle(L.s("فعّل ترجمان مدى الحياة", "Tercüman'ı ömür boyu etkinleştir"))
+            .setMessage(L.s("انتهت تجربتك المجانية (3 ساعات لعب).\n\nادفع مرة وحدة بس $price وتلعب مترجم مدى الحياة، مع كل التحديثات.\n\nالدفع آمن عن طريق Google Play: بالبطاقة، أو رصيد الجوال، أو بطاقات Google Play، حسب المتاح في بلدك.", "Ücretsiz denemen bitti (3 saat oyun).\n\nYalnızca bir kez $price öde, ömür boyu çeviriyle oyna; tüm güncellemeler dahil.\n\nÖdeme Google Play üzerinden güvenle yapılır: kart, mobil bakiye veya Google Play hediye kartı (ülkene göre)."))
+            .setPositiveButton(L.s("شراء $price", "Satın al $price")) { _, _ ->
+                if (!Licensing.buy(this)) android.widget.Toast.makeText(this, L.s("متجر Google Play غير جاهز، جرّب بعد شوي", "Google Play hazır değil, biraz sonra tekrar dene"), android.widget.Toast.LENGTH_LONG).show()
             }
-            .setNegativeButton("لاحقًا", null).show().focusMain()
+            .setNegativeButton(L.s("لاحقًا", "Sonra"), null).show().focusMain()
     }
 
     private fun loadSponsors() {
@@ -239,7 +253,6 @@ class MainActivity : Activity() {
                 c.setRequestProperty("User-Agent", "arribha-app/1"); c.connectTimeout = 4000; c.readTimeout = 6000
                 org.json.JSONObject(c.inputStream.bufferedReader().readText())
             }.getOrNull()
-            val adUrl = cfg?.optString("advertise_url", "") ?: ""
             val slots = (0 until 3).map { i -> cfg?.optJSONArray("slots")?.optJSONObject(i) }
             val images = slots.map { s ->
                 val img = s?.optString("image", "") ?: ""
@@ -255,10 +268,10 @@ class MainActivity : Activity() {
                         background = bg; clipToOutline = true
                         if (images[i] != null) addView(android.widget.ImageView(context).apply {
                             setImageBitmap(images[i]); scaleType = android.widget.ImageView.ScaleType.CENTER_CROP })
-                        else addView(text(if (name.isNotEmpty()) name else "أعلن هنا", 15f, Color.rgb(143, 163, 199)),
+                        else addView(text(if (name.isNotEmpty()) name else L.s("أعلن هنا", "Reklam ver"), 15f, Color.rgb(143, 163, 199)),
                             android.widget.FrameLayout.LayoutParams(-1, -1))
                         setOnFocusChangeListener { v, f -> bg.setStroke(if (f) 4 else 0, Color.WHITE); v.animate().scaleX(if (f) 1.05f else 1f).scaleY(if (f) 1.05f else 1f).setDuration(120).start() }
-                        setOnClickListener { showQr(if (url.startsWith("https://")) url else adUrl, if (url.isNotEmpty()) name else "أعلن في عرّبها") }
+                        setOnClickListener { if (url.startsWith("https://")) showQr(url, name) else adInfo() }
                     }
                     sponsorRow.addView(tile, LinearLayout.LayoutParams(210, 118).apply { setMargins(12, 0, 12, 0) })
                 }
@@ -266,12 +279,30 @@ class MainActivity : Activity() {
         }.start()
     }
 
+    /** empty ad tile: how to advertise, with a QR that opens an email on the phone */
+    private fun adInfo() {
+        val mail = "d.fifn1@gmail.com"
+        val img = android.widget.ImageView(this).apply {
+            setImageBitmap(qr("mailto:$mail?subject=" + android.net.Uri.encode(L.s("إعلان في ترجمان", "Tercüman reklam")), 300)); setPadding(30, 20, 30, 20) }
+        android.app.AlertDialog.Builder(this).setTitle(L.s("أعلن في ترجمان", "Tercüman'da reklam ver"))
+            .setMessage(L.s(
+                "يظهر إعلانك هنا لكل اللاعبين في الشاشة الرئيسية.\n\n1. امسح الرمز بجوالك أو راسلنا على:\n$mail\n2. أرسل شعارك ورابط موقعك\n3. يظهر إعلانك بعد الموافقة",
+                "Reklamın ana ekranda tüm oyunculara görünür.\n\n1. Kodu telefonunla tara ya da yaz:\n$mail\n2. Logonu ve web sitenin bağlantısını gönder\n3. Onaydan sonra reklamın yayında"))
+            .setView(img).setPositiveButton(L.s("تم", "Tamam"), null).show().focusMain()
+    }
+
     /** sponsor links open on the phone: scanning is easier than a TV browser */
     private fun showQr(url: String, title: String) {
         if (url.isEmpty()) return
         val img = android.widget.ImageView(this).apply { setImageBitmap(qr(url, 360)); setPadding(30, 30, 30, 30) }
-        android.app.AlertDialog.Builder(this).setTitle(title).setMessage("امسح الرمز بكاميرا جوالك").setView(img)
-            .setPositiveButton("تم", null).show().focusMain()
+        android.app.AlertDialog.Builder(this).setTitle(title).setMessage(L.s("امسح الرمز بكاميرا جوالك", "Kodu telefonunun kamerasıyla tara")).setView(img)
+            .setPositiveButton(L.s("تم", "Tamam"), null).show().focusMain()
+    }
+
+    /** a new language needs a fresh start (translator model, library and texts) */
+    private fun restartApp() {
+        val i = packageManager.getLaunchIntentForPackage(packageName)?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(i); finish(); Runtime.getRuntime().exit(0)
     }
 
     private fun hasPad() = android.view.InputDevice.getDeviceIds().any { id ->
@@ -300,9 +331,9 @@ class MainActivity : Activity() {
                 ui.post {
                     if (id != null) {
                         store.accountId = id; accountField.setText(id)
-                        linkStatus.text = "✓ تم تسجيل الدخول من الجوال. باقي رقم الربط من البلايستيشن"
+                        linkStatus.text = L.s("✓ تم تسجيل الدخول من الجوال. باقي رقم الربط من البلايستيشن", "✓ Telefondan giriş yapıldı. Şimdi PlayStation'daki bağlantı kodunu gir")
                         pinField.requestFocus()
-                    } else if (code.isNotEmpty()) linkStatus.text = "ما اكتمل تسجيل الدخول، جرّب مرة ثانية"
+                    } else if (code.isNotEmpty()) linkStatus.text = L.s("ما اكتمل تسجيل الدخول، جرّب مرة ثانية", "Giriş tamamlanamadı, tekrar dene")
                 }
             }.start()
             ui.postDelayed(this, 2000)
@@ -351,27 +382,29 @@ class MainActivity : Activity() {
     private fun refresh() {
         val h = myHost()
         consoleLine.text = when {
-            h == null -> "● جاري البحث عن البلايستيشن"
-            h.state == DiscoveryHost.State.READY -> "● ${h.hostName} جاهز"
-            h.state == DiscoveryHost.State.STANDBY -> "● ${h.hostName} في وضع الراحة"
+            h == null -> L.s("● جاري البحث عن البلايستيشن", "● PlayStation aranıyor")
+            h.state == DiscoveryHost.State.READY -> L.s("● ${h.hostName} جاهز", "● ${h.hostName} hazır")
+            h.state == DiscoveryHost.State.STANDBY -> L.s("● ${h.hostName} في وضع الراحة", "● ${h.hostName} dinlenme modunda")
             else -> "● ${h.hostName}"
         }
         consoleLine.text = android.text.SpannableString(consoleLine.text).apply {
             if (isNotEmpty() && this[0] == '●') setSpan(android.text.style.ForegroundColorSpan(
                 if (h?.state == DiscoveryHost.State.READY) Color.rgb(52, 211, 120) else Color.rgb(250, 190, 70)), 0, 1, 0)
         }
-        val tierName = when (store.tier) { 2 -> "قوي"; 1 -> "متوسط"; 0 -> "ضعيف"; else -> null }
+        val tierName = when (store.tier) { 2 -> L.s("قوي", "Güçlü"); 1 -> L.s("متوسط", "Orta"); 0 -> L.s("ضعيف", "Zayıf"); else -> null }
         if (tierName != null) {
-            val warn = if (store.tier == 0) "\n⚠️ تلفزيونك ضعيف، وممكن تنزل الفريمات حتى بدون ترجمة. الترجمة بتشتغل ببطء عشان تحافظ على السلاسة." else ""
-            deviceLine.text = "1080p • 60 إطارًا • ${if (store.useHevc) "HEVC" else "H.264"} • جهاز $tierName$warn"
+            val warn = if (store.tier == 0) L.s("\n⚠️ تلفزيونك ضعيف، وممكن تنزل الفريمات حتى بدون ترجمة. الترجمة بتشتغل ببطء عشان تحافظ على السلاسة.", "\n⚠️ TV'n zayıf; çeviri olmadan da kare hızı düşebilir. Akıcılığı korumak için çeviri yavaş çalışır.") else ""
+            deviceLine.text = "1080p • " + L.s("60 إطارًا", "60 fps") + " • ${if (store.useHevc) "HEVC" else "H.264"} • " + L.s("جهاز $tierName", "Cihaz: $tierName") + warn
         }
         licenseLine.text = when {
             Licensing.owned -> ""
-            Licensing.canPlay -> "تجربة مجانية: باقي ${Licensing.trialLeftSeconds / 3600} س ${(Licensing.trialLeftSeconds % 3600) / 60} د من اللعب"
-            else -> "انتهت التجربة المجانية — فعّل عرّبها مدى الحياة"
+            Licensing.canPlay -> L.s("تجربة مجانية: باقي ${Licensing.trialLeftSeconds / 3600} س ${(Licensing.trialLeftSeconds % 3600) / 60} د من اللعب", "Ücretsiz deneme: ${Licensing.trialLeftSeconds / 3600} sa ${(Licensing.trialLeftSeconds % 3600) / 60} dk oyun süresi kaldı")
+            else -> L.s("انتهت التجربة المجانية — فعّل ترجمان مدى الحياة", "Ücretsiz deneme bitti — Tercüman'ı ömür boyu etkinleştir")
         }
         val linked = store.isLinked
         padBtn.visibility = if (linked && !hasPad()) View.VISIBLE else View.GONE
+        // the link screen shows only what linking needs
+        for (v in listOf(licenseLine, sponsorLabel, sponsorRow)) v.visibility = if (linked) View.VISIBLE else View.GONE
         titleViews.forEach { it.visibility = if (linked) View.VISIBLE else View.GONE }
         linkBox.visibility = if (linked) View.GONE else View.VISIBLE
         settingsBox.visibility = if (linked) View.VISIBLE else View.GONE
@@ -384,14 +417,14 @@ class MainActivity : Activity() {
     private fun link() {
         val h = myHost()
         val addr = h?.hostAddr
-        if (addr == null) { linkStatus.text = "ما لقيت البلايستيشن في الشبكة. شغّله وتأكد إنه على نفس الراوتر."; return }
+        if (addr == null) { linkStatus.text = L.s("ما لقيت البلايستيشن في الشبكة. شغّله وتأكد إنه على نفس الراوتر.", "PlayStation ağda bulunamadı. Açık ve aynı modeme bağlı olduğundan emin ol."); return }
         val acc = try { Base64.decode(accountField.text.toString().trim(), Base64.DEFAULT) } catch (e: Exception) { null }
-        if (acc == null || acc.size != RegistInfo.ACCOUNT_ID_SIZE) { linkStatus.text = "سجّل دخولك أول (من التلفزيون أو الجوال)"; return }
+        if (acc == null || acc.size != RegistInfo.ACCOUNT_ID_SIZE) { linkStatus.text = L.s("سجّل دخولك أول (من التلفزيون أو الجوال)", "Önce giriş yap (TV'den veya telefondan)"); return }
         val pin = pinField.text.toString().trim()
-        if (pin.length != 8 || pin.any { !it.isDigit() }) { linkStatus.text = "رقم الربط لازم يكون 8 أرقام"; return }
+        if (pin.length != 8 || pin.any { !it.isDigit() }) { linkStatus.text = L.s("رقم الربط لازم يكون 8 أرقام", "Bağlantı kodu 8 haneli olmalı"); return }
         store.accountId = accountField.text.toString()
         val target = if (h.isPS5) Target.PS5_1 else Target.PS4_10
-        linkStatus.text = "⏳ جاري الربط..."
+        linkStatus.text = L.s("⏳ جاري الربط...", "⏳ Bağlanıyor...")
         regist?.dispose()
         try {
             val log = ChiakiLog(ChiakiLog.Level.WARNING.value or ChiakiLog.Level.ERROR.value)  /* INFO prints the link keys */ { _, t -> Log.i("ArribhaRegist", t) }
@@ -412,8 +445,8 @@ class MainActivity : Activity() {
                             refresh()
                             playBtn.requestFocus()
                         }
-                        is RegistEventFailed -> linkStatus.text = "❌ ما نجح الربط. تأكد من رقم الربط (يتغير كل 5 دقايق) ورقم الحساب."
-                        is RegistEventCanceled -> linkStatus.text = "انلغى الربط"
+                        is RegistEventFailed -> linkStatus.text = L.s("❌ ما نجح الربط. تأكد من رقم الربط (يتغير كل 5 دقايق) ورقم الحساب.", "❌ Bağlanamadı. Kodu kontrol et (her 5 dakikada bir değişir).")
+                        is RegistEventCanceled -> linkStatus.text = L.s("انلغى الربط", "Bağlantı iptal edildi")
                     }
                 }
             }
@@ -427,7 +460,7 @@ class MainActivity : Activity() {
     private fun play() {
         val h = myHost()
         if (h != null && h.state == DiscoveryHost.State.STANDBY) {
-            consoleLine.text = "⏳ أصحّي البلايستيشن... (تقريباً 20 ثانية)"
+            consoleLine.text = L.s("⏳ أصحّي البلايستيشن... (تقريباً 20 ثانية)", "⏳ PlayStation uyandırılıyor... (yaklaşık 20 saniye)")
             wakeup(h.hostAddr ?: store.consoleHost)
             waitingToPlay = true
             ui.postDelayed({ if (waitingToPlay) { waitingToPlay = false; openStream() } }, 35_000)

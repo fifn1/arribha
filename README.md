@@ -1,4 +1,4 @@
-# عرّبها — Arribha
+# ترجمان — Tercüman
 
 **العب ألعاب البلايستيشن على تلفزيون أندرويد مع ترجمة عربية فورية.**
 تطبيق مجاني لتلفزيونات Android TV / Google TV: يبث اللعبة من PS5/PS4 داخل شبكة المنزل (1080p، 60 إطارًا، HEVC/HDR) ويقرأ نصوص اللعبة الإنجليزية ويعرضها بالعربية الفصحى مكانها.
@@ -30,4 +30,4 @@ AGPL-3.0 (انظر `LICENSE`). يستخدم التطبيق محرك **Chiaki 2.2
 PlayStation وPS5 علامات تجارية لشركة Sony Interactive Entertainment. هذا المشروع غير تابع لـ Sony.
 
 ---
-**Arribha** — free Android TV app: PlayStation Remote Play (Chiaki engine) with live Arabic translation of in-game text. AGPL-3.0.
+**Tercüman** (formerly Arribha) — free Android TV app: PlayStation Remote Play (Chiaki engine) with live Arabic and Turkish translation of in-game text. AGPL-3.0.

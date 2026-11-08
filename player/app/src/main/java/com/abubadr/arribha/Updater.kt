@@ -40,10 +40,10 @@ object Updater {
                 a.runOnUiThread {
                     if (a.isFinishing) return@runOnUiThread
                     AlertDialog.Builder(a)
-                        .setTitle("تحديث جديد لعرّبها ($latest)")
-                        .setMessage(j.optString("body").take(400).ifBlank { "تحسينات وإصلاحات." })
-                        .setPositiveButton("تحديث الآن") { _, _ -> download(a, url) }
-                        .setNegativeButton("لاحقًا", null).show().focusMain()
+                        .setTitle(L.s("تحديث جديد لترجمان ($latest)", "Tercüman için yeni güncelleme ($latest)"))
+                        .setMessage(j.optString("body").take(400).ifBlank { L.s("تحسينات وإصلاحات.", "İyileştirmeler ve düzeltmeler.") })
+                        .setPositiveButton(L.s("تحديث الآن", "Şimdi güncelle")) { _, _ -> download(a, url) }
+                        .setNegativeButton(L.s("لاحقًا", "Sonra"), null).show().focusMain()
                 }
             }.onFailure { Log.w("Arribha", "update check: $it") }
         }.start()

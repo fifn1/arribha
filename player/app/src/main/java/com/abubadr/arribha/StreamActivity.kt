@@ -57,6 +57,7 @@ class StreamActivity : Activity() {
 
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
+        L.init(this)
         store = Store(this)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
@@ -70,7 +71,7 @@ class StreamActivity : Activity() {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
             setShadowLayer(6f, 0f, 2f, Color.BLACK)
             setPadding(48, 32, 48, 32)
-            textDirection = View.TEXT_DIRECTION_RTL
+            textDirection = L.textDir
         }
         root.addView(status, FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.END))
         setContentView(root)
@@ -87,7 +88,7 @@ class StreamActivity : Activity() {
         engine = TranslateEngine(surfaceView, overlayHost, store, store.tier.coerceAtLeast(0))
         engine.enabled = store.translateOn
         engine.onGuardChanged = { paused ->
-            say(if (paused) "⏸ أوقفت الترجمة مؤقتاً عشان تبقى اللعبة سلسة" else "▶ رجعت الترجمة", 4000)
+            say(if (paused) L.s("⏸ أوقفت الترجمة مؤقتاً عشان تبقى اللعبة سلسة", "⏸ Oyun akıcı kalsın diye çeviri kısa süreliğine durduruldu") else L.s("▶ رجعت الترجمة", "▶ Çeviri devam ediyor"), 4000)
         }
 
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
@@ -167,7 +168,7 @@ class StreamActivity : Activity() {
             max(preset.bitrate, store.bitrate), preset.codec)
         Log.i("Arribha", "video ${profile.width}x${profile.height}@${profile.maxFPS} ${profile.bitrate}kbps ${profile.codec}")
         val info = ConnectInfo(store.isPS5, store.consoleHost, regKey, morning, profile)
-        say("⏳ جاري الاتصال بالبلايستيشن...")
+        say(L.s("⏳ جاري الاتصال بالبلايستيشن...", "⏳ PlayStation'a bağlanılıyor..."))
         try {
             val s = Session(info, File(filesDir, "session.log").absolutePath, false)
             s.eventCallback = { e -> ui.post { onEvent(e) } }
@@ -175,7 +176,7 @@ class StreamActivity : Activity() {
             if (surfaceReady) s.setSurface(surfaceView.holder.surface)
             session = s
         } catch (e: CreateError) {
-            say("❌ تعذر بدء الاتصال: ${e.errorCode}")
+            say(L.s("❌ تعذر بدء الاتصال: ${e.errorCode}", "❌ Bağlantı başlatılamadı: ${e.errorCode}"))
             health(false, "create: ${e.errorCode}")
         }
     }
@@ -203,7 +204,7 @@ class StreamActivity : Activity() {
         // PS5 does not report the running game, so reading stays on; menus are filtered by language and style
         engine.inGame = true
         Log.i("Arribha", "running game: $title")
-        if (title != null && engine.enabled) say("🎮 $title — الترجمة شغالة", 4000)
+        if (title != null && engine.enabled) say(L.s("🎮 $title — الترجمة شغالة", "🎮 $title — çeviri açık"), 4000)
     }
 
     private fun hasGamepad(): Boolean = InputDevice.getDeviceIds().any { id ->
@@ -213,8 +214,8 @@ class StreamActivity : Activity() {
     }
 
     private val deviceListener = object : InputManager.InputDeviceListener {
-        override fun onInputDeviceAdded(id: Int) { if (hasGamepad()) say("🎮 اليدة اتصلت ✅", 3000) }
-        override fun onInputDeviceRemoved(id: Int) { if (!hasGamepad()) say("🎮 اليدة انفصلت عن التلفزيون: اضغط زر PS فيها", 8000) }
+        override fun onInputDeviceAdded(id: Int) { if (hasGamepad()) say(L.s("🎮 اليد اتصلت ✅", "🎮 Kol bağlandı ✅"), 3000) }
+        override fun onInputDeviceRemoved(id: Int) { if (!hasGamepad()) say(L.s("🎮 اليد انفصلت عن التلفزيون: اضغط زر PS فيها", "🎮 Kolun TV ile bağlantısı kesildi: koldaki PS tuşuna bas"), 8000) }
         override fun onInputDeviceChanged(id: Int) {}
     }
 
@@ -251,7 +252,7 @@ class StreamActivity : Activity() {
         override fun run() {
             if (session == null) return
             Licensing.addPlayed(60)
-            if (!Licensing.canPlay) say("⏳ انتهت التجربة المجانية. كمّل جولتك، وبعدها فعّل عرّبها مدى الحياة من الشاشة الرئيسية", 15000)
+            if (!Licensing.canPlay) say(L.s("⏳ انتهت التجربة المجانية. كمّل جولتك، وبعدها فعّل ترجمان مدى الحياة من الشاشة الرئيسية", "⏳ Ücretsiz deneme bitti. Bu oyunu tamamla, sonra ana ekrandan Tercüman'ı ömür boyu etkinleştir"), 15000)
             ui.postDelayed(this, 60_000)
         }
     }
@@ -270,8 +271,8 @@ class StreamActivity : Activity() {
             is ConnectedEvent -> {
                 ui.removeCallbacks(playClock); ui.postDelayed(playClock, 60_000)
                 health(true, null)
-                if (!hasGamepad()) say("🎮 اليدة مو موصولة بالتلفزيون: اضغط زر PS في اليدة. إذا ما اشتغلت، اربطها بالتلفزيون (Create + PS)", 12000)
-                else say(if (engine.enabled) "✅ متصل — الترجمة تشتغل داخل الألعاب بس (OK بالريموت يشغّلها ويطفيها)" else "✅ متصل — الترجمة طافية", 5000)
+                if (!hasGamepad()) say(L.s("🎮 اليد مو موصولة بالتلفزيون: اضغط زر PS في اليد. إذا ما اشتغلت، اربطها بالتلفزيون (Create + PS)", "🎮 Kol TV'ye bağlı değil: koldaki PS tuşuna bas. Olmazsa kolu TV'ye bağla (Create + PS)"), 12000)
+                else say(if (engine.enabled) L.s("✅ متصل — الترجمة تشتغل داخل الألعاب بس (OK بالريموت يشغّلها ويطفيها)", "✅ Bağlandı — çeviri yalnızca oyunlarda çalışır (kumandadaki OK ile aç/kapat)") else L.s("✅ متصل — الترجمة طافية", "✅ Bağlandı — çeviri kapalı"), 5000)
                 engine.inGame = true
                 engine.start()
                 watchGame()
@@ -280,7 +281,7 @@ class StreamActivity : Activity() {
                 if (e.reason.isError) health(false, e.reasonString ?: e.reason.toString())
                 engine.stop()
                 Log.w("Arribha", "quit: ${e.reason} ${e.reasonString}")
-                val msg = if (e.reason.isError) "❌ انقطع الاتصال: ${e.reasonString ?: e.reason}" else "انتهى اللعب"
+                val msg = if (e.reason.isError) L.s("❌ انقطع الاتصال: ${e.reasonString ?: e.reason}", "❌ Bağlantı koptu: ${e.reasonString ?: e.reason}") else L.s("انتهى اللعب", "Oyun sona erdi")
                 say(msg)
                 disconnect()
                 ui.postDelayed({ finish() }, 3000)
@@ -293,10 +294,10 @@ class StreamActivity : Activity() {
     private fun askLoginPin(wrong: Boolean) {
         val field = EditText(this).apply { inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD }
         AlertDialog.Builder(this)
-            .setTitle(if (wrong) "الرمز غلط، جرّب مرة ثانية" else "رمز الدخول لحسابك في البلايستيشن")
+            .setTitle(if (wrong) L.s("الرمز غلط، جرّب مرة ثانية", "Kod yanlış, tekrar dene") else L.s("رمز الدخول لحسابك في البلايستيشن", "PlayStation hesabının giriş kodu"))
             .setView(field)
-            .setPositiveButton("دخول") { _, _ -> session?.setLoginPin(field.text.toString()) }
-            .setNegativeButton("إلغاء") { _, _ -> finish() }
+            .setPositiveButton(L.s("دخول", "Giriş")) { _, _ -> session?.setLoginPin(field.text.toString()) }
+            .setNegativeButton(L.s("إلغاء", "İptal")) { _, _ -> finish() }
             .show()
     }
 
@@ -309,20 +310,20 @@ class StreamActivity : Activity() {
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
                 engine.enabled = !engine.enabled
                 store.translateOn = engine.enabled
-                say(if (engine.enabled) "🌐 الترجمة شغالة" else "🌐 الترجمة طافية", 2500)
+                say(if (engine.enabled) L.s("🌐 الترجمة شغالة", "🌐 Çeviri açık") else L.s("🌐 الترجمة طافية", "🌐 Çeviri kapalı"), 2500)
             }
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> {
                 val d = if (event.keyCode == KeyEvent.KEYCODE_DPAD_UP) 1 else -1
                 store.textSize = (store.textSize + d).coerceIn(0, 2)
-                say("🔠 حجم الخط: " + arrayOf("صغير", "متوسط", "كبير")[store.textSize], 2000)
+                say(L.s("🔠 حجم الخط: ", "🔠 Yazı boyutu: ") + arrayOf(L.s("صغير", "Küçük"), L.s("متوسط", "Orta"), L.s("كبير", "Büyük"))[store.textSize], 2000)
             }
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
                 store.readFullScreen = !store.readFullScreen
-                say(if (store.readFullScreen) "📺 يقرأ الشاشة كاملة" else "💬 يقرأ أسفل الشاشة (الحوارات)", 2500)
+                say(if (store.readFullScreen) L.s("📺 يقرأ الشاشة كاملة", "📺 Tüm ekranı okuyor") else L.s("💬 يقرأ أسفل الشاشة (الحوارات)", "💬 Ekranın altını okuyor (diyaloglar)"), 2500)
             }
             KeyEvent.KEYCODE_BACK -> {
                 val now = SystemClock.uptimeMillis()
-                if (now - lastBack < 2500) finish() else say("اضغط رجوع مرة ثانية للخروج", 2500)
+                if (now - lastBack < 2500) finish() else say(L.s("اضغط رجوع مرة ثانية للخروج", "Çıkmak için Geri'ye tekrar bas"), 2500)
                 lastBack = now
             }
         }

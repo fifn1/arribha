@@ -28,6 +28,7 @@
             android:exported="false" android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/files" />
         </provider>
+        <activity android:name=".LanguageActivity" android:exported="false" android:screenOrientation="landscape" />
         <activity android:name=".WelcomeActivity" android:exported="false" android:screenOrientation="landscape" />
         <activity android:name=".PsnLoginActivity" android:exported="false" android:screenOrientation="landscape" />
         <activity android:name=".StreamActivity" android:exported="false"

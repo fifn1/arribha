@@ -29,9 +29,12 @@ object Library {
     private var lastSend = 0L
     private lateinit var dir: File
 
+    /** each language has its own library folder (lib = Arabic, lib-tr = Turkish) */
+    private val libUrl get() = if (L.isTr) lib.replace("/lib/", "/lib-tr/") else lib
+
     fun init(ctx: Context) {
         if (::dir.isInitialized) return
-        dir = File(ctx.filesDir, "lib").apply { mkdirs() }
+        dir = File(ctx.filesDir, if (L.isTr) "lib-tr" else "lib").apply { mkdirs() }
         val prefs = ctx.getSharedPreferences("arribha", Context.MODE_PRIVATE)
         if (!prefs.contains("sample_roll")) prefs.edit().putFloat("sample_roll", Math.random().toFloat()).apply()
         val roll = prefs.getFloat("sample_roll", 0f)
@@ -42,12 +45,12 @@ object Library {
                 sending = roll < c.optDouble("sample", 1.0)         // only a sample of players send new lines
                 Log.i("Arribha", "library ready, sending new lines: $sending")
                 // download the whole library now, so known lines are instant from the first time they appear
-                val idx = org.json.JSONArray(get("${lib}index.json"))
+                val idx = org.json.JSONArray(get("${libUrl}index.json"))
                 for (i in 0 until idx.length()) {
                     val sh = idx.getString(i)
                     val f = File(dir, "$sh.json")
                     if (f.exists() && System.currentTimeMillis() - f.lastModified() < 6 * 3600_000L) { runCatching { load(sh, f.readText()) }; continue }
-                    runCatching { val txt = get("$lib$sh.json"); f.writeText(txt); load(sh, txt) }
+                    runCatching { val txt = get("$libUrl$sh.json"); f.writeText(txt); load(sh, txt) }
                 }
                 Log.i("Arribha", "library prefetched: ${idx.length()} files")
             }
@@ -63,7 +66,7 @@ object Library {
         if (f.exists()) runCatching { load(sh, f.readText()) }
         if (!fresh && synchronized(asked) { asked.add(sh) }) net.execute {
             runCatching {
-                val t = get("$lib$sh.json")
+                val t = get("$libUrl$sh.json")
                 f.writeText(t); load(sh, t)
             }.onFailure { f.writeText(f.takeIf { it.exists() }?.readText() ?: "{}") }   // none yet: try again in 6 h
         }
@@ -101,7 +104,7 @@ object Library {
                     if (batch.isEmpty()) return@runCatching
                     val arr = JSONArray()
                     batch.forEach { (h, e) -> arr.put(JSONObject().put("h", h).put("en", e)) }
-                    post(intake, JSONObject().put("game", game ?: "").put("lines", arr).toString())
+                    post(intake, JSONObject().put("game", game ?: "").put("lang", L.lang).put("lines", arr).toString())
                 }
             }
         }

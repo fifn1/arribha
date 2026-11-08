@@ -82,6 +82,7 @@ object Phrasebook {
 
     /** Mission objectives "Go to the bank": Arabic verb + English object (translated separately). */
     fun objective(en: String): Pair<String, String>? {
+        if (L.isTr) return null   // Turkish puts the verb last: whole sentence goes to translation instead
         val s = en.trim().trimEnd('.', '!')
         val rules = listOf(
             "^(?:go|get|head|drive) (?:back )?to (?:the )?(.+)$" to "اذهب إلى ",
@@ -110,11 +111,13 @@ object Phrasebook {
     private fun key(s: String) = s.lowercase().trim().trimEnd('.', '!', '?', ':', '…').replace(Regex("\\s+"), " ")
 
     /** Exact hand-written line, or null. Icon tokens are kept: "ZZ0 Continue" -> "ZZ0 متابعة". */
+    private val dict get() = if (L.isTr) PhrasebookTr.exact else exact
+
     fun lookup(en: String): String? {
-        exact[key(en)]?.let { return keepPunct(en, it) }
+        dict[key(en)]?.let { return keepPunct(en, it) }
         // button hint: "ZZ0 Continue" / "Continue ZZ0"
-        Regex("^(ZZ\\d+)\\s+(.+)$").find(en.trim())?.let { m -> exact[key(m.groupValues[2])]?.let { return "${m.groupValues[1]} $it" } }
-        Regex("^(.+?)\\s+(ZZ\\d+)$").find(en.trim())?.let { m -> exact[key(m.groupValues[1])]?.let { return "$it ${m.groupValues[2]}" } }
+        Regex("^(ZZ\\d+)\\s+(.+)$").find(en.trim())?.let { m -> dict[key(m.groupValues[2])]?.let { return "${m.groupValues[1]} $it" } }
+        Regex("^(.+?)\\s+(ZZ\\d+)$").find(en.trim())?.let { m -> dict[key(m.groupValues[1])]?.let { return "$it ${m.groupValues[2]}" } }
         return null
     }
 
@@ -143,13 +146,13 @@ object Phrasebook {
         "paint" to "للرسم", "spin" to "للدوران", "spin attack" to "للهجوم الدوّار",
     )
 
-    fun verb(rest: String): String? = toVerb[key(rest)]
+    fun verb(rest: String): String? = (if (L.isTr) PhrasebookTr.toVerb else toVerb)[key(rest)]
 
     private fun keepPunct(en: String, ar: String): String {
-        if (ar.endsWith("؟") || ar.endsWith("!")) return ar
+        if (ar.endsWith("؟") || ar.endsWith("?") || ar.endsWith("!")) return ar
         val t = en.trim()
         return when {
-            t.endsWith("?") -> "$ar؟"
+            t.endsWith("?") -> if (L.isTr) "$ar?" else "$ar؟"
             t.endsWith("!") -> "$ar!"
             else -> ar
         }

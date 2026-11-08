@@ -16,34 +16,42 @@ import android.widget.TextView
 class WelcomeActivity : Activity() {
     // order matters: everything that needs the controller on the PlayStation comes first,
     // the controller moves to the TV last, so ONE controller is enough
-    private val steps = listOf(
+    private val steps get() = if (L.isTr) listOf(
+        "PlayStation'ı hazırla (kolla)" to "Ayarlar → Sistem → Uzaktan Oynatma → «Uzaktan Oynatmayı Etkinleştir»i aç. «Güç Tasarrufu → Dinlenme Modunda Kullanılabilen Özellikler»den «İnternete Bağlı Kal» ve «PS5'in Ağ Üzerinden Açılmasını Etkinleştir»i aç",
+        "Aynı ağ" to "PlayStation ve TV aynı modeme bağlı olsun. En iyisi: PlayStation kabloyla, TV 5 GHz Wi-Fi ile",
+        "Tercüman'ı bağla (kumandayla)" to "Tercüman'da giriş yap, ardından PlayStation'da: Uzaktan Oynatma → Cihazı Bağla ve çıkan kodu Tercüman'a yaz",
+        "Kolu TV'ye taşı" to "Işık yanıp sönene kadar Create ve PS tuşlarına birlikte bas, sonra Tercüman'da «Kolu TV'ye bağla»yı seç. Tek kol yeter: Tercüman PlayStation'ı açar ve yönetir",
+        "Oyunda altyazıyı aç" to "Oyunun içinde: Ayarlar → Altyazılar (Subtitles) → Açık. Tercüman altyazıları Türkçeye çevirir",
+    ) else listOf(
         "جهّز البلايستيشن (باليد)" to "الإعدادات ← النظام ← اللعب عن بُعد ← شغّل «تمكين اللعب عن بُعد». ومن «توفير الطاقة ← الميزات في وضع الراحة» شغّل «البقاء متصلًا بالإنترنت» و«تشغيل PS5 من الشبكة»",
         "نفس الشبكة" to "البلايستيشن والتلفزيون على نفس الراوتر. الأفضل: البلايستيشن بكيبل والتلفزيون واي فاي 5G",
-        "اربط عرّبها (بالريموت)" to "سجّل دخولك في عرّبها، وبعدها في البلايستيشن: اللعب عن بُعد ← إقران الجهاز، واكتب الرقم في عرّبها",
-        "انقل اليد للتلفزيون" to "اضغط زر Create وزر PS مع بعض لين يرمش الضوء، وفي عرّبها اختر «ربط اليد». يد وحدة تكفي: عرّبها يشغّل البلايستيشن ويتحكم فيه",
-        "شغّل الترجمة في اللعبة" to "داخل اللعبة: الإعدادات ← الترجمة (Subtitles) ← تشغيل. عرّبها يحوّلها للعربي",
+        "اربط ترجمان (بالريموت)" to "سجّل دخولك في ترجمان، وبعدها في البلايستيشن: اللعب عن بُعد ← إقران الجهاز، واكتب الرقم في ترجمان",
+        "انقل اليد للتلفزيون" to "اضغط زر Create وزر PS مع بعض لين يرمش الضوء، وفي ترجمان اختر «ربط اليد». يد وحدة تكفي: ترجمان يشغّل البلايستيشن ويتحكم فيه",
+        "شغّل الترجمة في اللعبة" to "داخل اللعبة: الإعدادات ← الترجمة (Subtitles) ← تشغيل. ترجمان يحوّلها للعربي",
     )
 
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
+        L.init(this)
         val col = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
+            layoutDirection = L.dir
             setPadding(140, 22, 140, 22)
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Color.rgb(16, 27, 54), Color.rgb(7, 10, 20), Color.rgb(4, 5, 10)))
         }
-        col.addView(text("أهلًا بك في عرّبها", 40f, Color.WHITE, true))
-        col.addView(text("خمس خطوات مرة وحدة بس، ويكفيك يد وحدة", 18f, Color.rgb(143, 163, 199), false), lp(6))
+        col.addView(text(L.s("أهلًا بك في ترجمان", "Tercüman'a hoş geldin"), 40f, Color.WHITE, true))
+        col.addView(text(L.s("خمس خطوات مرة وحدة بس، ويكفيك يد وحدة", "Yalnızca bir kez beş adım, tek kol yeter"), 18f, Color.rgb(143, 163, 199), false), lp(6))
         for ((i, s) in steps.withIndex()) col.addView(row(i + 1, s.first, s.second), LinearLayout.LayoutParams(-1, -2).apply { topMargin = 10 })
         val go = Button(this).apply {
-            text = "يلا نبدأ"; isAllCaps = false; stateListAnimator = null
+            text = L.s("يلا نبدأ", "Hadi başlayalım"); isAllCaps = false; stateListAnimator = null
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f); setTextColor(Color.WHITE); typeface = Typeface.DEFAULT_BOLD
             background = GradientDrawable(GradientDrawable.Orientation.RIGHT_LEFT, intArrayOf(Color.rgb(47, 107, 255), Color.rgb(0, 166, 255))).apply { cornerRadius = 100f }
-            setPadding(60, 20, 60, 20)
+            setPadding(90, 18, 90, 18)
             setOnClickListener { Store(this@WelcomeActivity).welcomed = true; finish() }
         }
-        col.addView(go, LinearLayout.LayoutParams(420, -2).apply { topMargin = 16; gravity = Gravity.CENTER_HORIZONTAL })
+        go.isSingleLine = true
+        col.addView(go, LinearLayout.LayoutParams(-2, -2).apply { topMargin = 14; gravity = Gravity.CENTER_HORIZONTAL })
         setContentView(col)
         go.requestFocus()
     }
@@ -61,13 +69,13 @@ class WelcomeActivity : Activity() {
         addView(LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             addView(text(title, 19f, Color.WHITE, true).apply { gravity = Gravity.START })
-            addView(text(body, 15f, Color.rgb(170, 185, 210), false).apply { gravity = Gravity.START })
+            addView(text(body, 14f, Color.rgb(170, 185, 210), false).apply { gravity = Gravity.START })
         }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = 22 })
     }
 
     private fun text(s: String, sp: Float, color: Int, bold: Boolean) = TextView(this).apply {
         text = s; setTextSize(TypedValue.COMPLEX_UNIT_SP, sp); setTextColor(color); gravity = Gravity.CENTER
-        textDirection = View.TEXT_DIRECTION_RTL
+        textDirection = L.textDir
         if (bold) typeface = Typeface.DEFAULT_BOLD
     }
 

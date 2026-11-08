@@ -72,7 +72,7 @@ class TranslateEngine(
     private val ocr = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     private val translator = Translation.getClient(TranslatorOptions.Builder()
         .setSourceLanguage(TranslateLanguage.ENGLISH)
-        .setTargetLanguage(TranslateLanguage.ARABIC).build())
+        .setTargetLanguage(L.mlkitTarget).build())
     @Volatile private var modelReady = false
     private val cache = object : LinkedHashMap<String, String>(256, 0.75f, true) {
         override fun removeEldestEntry(e: MutableMap.MutableEntry<String, String>?) = size > 2000
@@ -437,7 +437,7 @@ class TranslateEngine(
             var t = clean(words.joinToString(" "))
             t = t.replace(Regex("(?i)\\bzz(\\d+)")) { "ZZ" + it.groupValues[1] }
             val plain = t.replace(Regex("ZZ\\d+"), "").replace(Regex("\\s+"), " ").trim()
-            val known = GamePacks.find(t) != null || Phrasebook.lookup(t) != null || Phrasebook.lookup(plain) != null
+            val known = (!L.isTr && GamePacks.find(t) != null) || Phrasebook.lookup(t) != null || Phrasebook.lookup(plain) != null
             if (!known) {
                 if (!looksEnglish(plain)) continue
                 val n = plain.split(Regex("\\s+")).size
@@ -639,8 +639,8 @@ class TranslateEngine(
 
     /** Arabic for a character or place name, always the same once chosen. */
     private fun nameAr(name: String): String {
-        GamePacks.name(name)?.let { return it }
-        val key = name.lowercase()
+        if (!L.isTr) GamePacks.name(name)?.let { return it }
+        val key = L.lang + ":" + name.lowercase()
         names.getString(key, null)?.let { return it }
         val pretty = name.lowercase().replaceFirstChar { it.uppercase() }
         val ar = mt(pretty)
@@ -651,7 +651,7 @@ class TranslateEngine(
     private fun translatePiece(raw: String): String {
         // a stray single digit/letter before a sentence is usually a misread picture (e.g. "3 Explore …")
         val en = raw.replace(Regex("^[0-9]\\s+(?=[A-Z])"), "")
-        GamePacks.find(en)?.let { return it }          // the game's own professional translation first
+        if (!L.isTr) GamePacks.find(en)?.let { return it }   // the game's own professional translation first (Arabic packs)
         Library.find(GamePacks.hash(en))?.let { return it }   // shared library, filled automatically
         Phrasebook.lookup(en)?.let { return it }
 
@@ -659,14 +659,19 @@ class TranslateEngine(
         val s = en.trim().trimEnd('.', '!')
         Regex("^(?:press|tap)\\s+(ZZ\\d+)(?:\\s+to\\s+(.+))?$", RegexOption.IGNORE_CASE).find(s)?.let { m ->
             val rest = m.groupValues[2]
+            if (L.isTr) return if (rest.isEmpty()) "${m.groupValues[1]} tuşuna bas"
+                else (Phrasebook.verb(rest) ?: mt("to $rest").trimEnd('.')) + " için ${m.groupValues[1]} tuşuna bas"
             return if (rest.isEmpty()) "اضغط ${m.groupValues[1]}"
             else "اضغط ${m.groupValues[1]} " + (Phrasebook.verb(rest) ?: mt("to $rest"))
         }
         Regex("^hold\\s+(ZZ\\d+)(?:\\s+to\\s+(.+))?$", RegexOption.IGNORE_CASE).find(s)?.let { m ->
             val rest = m.groupValues[2]
+            if (L.isTr) return if (rest.isEmpty()) "${m.groupValues[1]} tuşunu basılı tut"
+                else (Phrasebook.verb(rest) ?: mt("to $rest").trimEnd('.')) + " için ${m.groupValues[1]} tuşunu basılı tut"
             return "اضغط مطولًا على ${m.groupValues[1]}" + if (rest.isEmpty()) "" else " " + (Phrasebook.verb(rest) ?: mt("to $rest"))
         }
         Regex("^(.+?)\\s+by\\s+pressing\\s+(ZZ\\d+)$", RegexOption.IGNORE_CASE).find(s)?.let { m ->
+            if (L.isTr) return "${m.groupValues[2]} tuşuna basarak " + translateSentence(m.groupValues[1]).trimEnd('.').replaceFirstChar { it.lowercase() } + "."
             return translateSentence(m.groupValues[1]).trimEnd('.', '،') + " بالضغط على ${m.groupValues[2]}."
         }
         Phrasebook.objective(en)?.let { (verb, obj) -> Library.submit(GamePacks.hash(en), en, GamePacks.activeGame); return verb + translateSentence(obj) }
@@ -744,7 +749,7 @@ class TranslateEngine(
             val fg = Color.WHITE
             val box = LinearLayout(ctx).apply {
                 orientation = LinearLayout.VERTICAL
-                layoutDirection = View.LAYOUT_DIRECTION_RTL
+                layoutDirection = L.dir
                 // cinematic subtitle: no box, no border - a soft haze of the scene itself that fades out at its edges
                 background = s.patch?.let { BitmapDrawable(ctx.resources, it).apply { isFilterBitmap = true } }
                     ?: GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
@@ -757,12 +762,12 @@ class TranslateEngine(
                 setTextColor(colors.speaker)
                 typeface = Typeface.DEFAULT_BOLD
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, px * 0.8f)
-                textDirection = View.TEXT_DIRECTION_RTL
+                textDirection = L.textDir
                 gravity = Gravity.CENTER
             })
             box.addView(TextView(ctx).apply {
                 text = withIcons(m.ar, m.icons, px)
-                textDirection = View.TEXT_DIRECTION_RTL
+                textDirection = L.textDir
                 gravity = Gravity.CENTER
                 setTextColor(fg)
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, px)
