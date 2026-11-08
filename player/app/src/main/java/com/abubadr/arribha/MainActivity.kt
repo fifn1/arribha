@@ -65,7 +65,7 @@ class MainActivity : Activity() {
         Licensing.init(this)
         Licensing.onChange = { ui.post { refresh() } }
         if (L.chosen(this) && !store.welcomed) startActivity(Intent(this, WelcomeActivity::class.java))
-        else Updater.check(this)
+        else if (BuildConfig.SELF_UPDATE) Updater.check(this)
 
         val col = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -338,7 +338,29 @@ class MainActivity : Activity() {
         android.app.AlertDialog.Builder(this).setTitle(L.s("تواصل معنا", "Bize ulaşın"))
             .setMessage(L.s("مشكلة، اقتراح، أو تبغى تعلن معنا؟ امسح الرمز بجوالك أو راسلنا على:\n\n$CONTACT",
                 "Sorun, öneri ya da reklam mı? Kodu telefonunla tara ya da yaz:\n\n$CONTACT"))
-            .setView(img).setPositiveButton(L.s("تم", "Tamam"), null).show().focusMain()
+            .setView(img).setPositiveButton(L.s("تم", "Tamam"), null)
+            .setNeutralButton(L.s("الشروط والترخيص", "Şartlar ve lisans")) { _, _ -> legal() }.show().focusMain()
+    }
+
+    /** the notices the AGPL asks every user to be able to see, plus where the terms and privacy pages live */
+    private fun legal() {
+        android.app.AlertDialog.Builder(this).setTitle(L.s("الشروط والترخيص", "Şartlar ve lisans"))
+            .setMessage(L.s(
+                """© 2026 Taketore. ترجمان مبني على مشروع Chiaki المفتوح، ومرخّص بموجب رخصة GNU AGPL الإصدار 3، ويُقدَّم «كما هو» بدون أي ضمان.
+
+الكود المصدري: github.com/fifn1/arribha
+شروط الاستخدام: arribha-intake.d-fifn1.workers.dev/terms
+الخصوصية: arribha-intake.d-fifn1.workers.dev/privacy
+
+ترجمان تطبيق مستقل وغير تابع لشركة Sony Interactive Entertainment. «PlayStation» و«PS5» علامتان تجاريتان لأصحابهما.""",
+                """© 2026 Taketore. Tercüman, açık kaynaklı Chiaki projesine dayanır, GNU AGPL sürüm 3 ile lisanslanmıştır ve hiçbir garanti olmaksızın «olduğu gibi» sunulur.
+
+Kaynak kodu: github.com/fifn1/arribha
+Kullanım şartları: arribha-intake.d-fifn1.workers.dev/terms?lang=tr
+Gizlilik: arribha-intake.d-fifn1.workers.dev/privacy?lang=tr
+
+Tercüman bağımsız bir uygulamadır; Sony Interactive Entertainment ile bağlantılı değildir. «PlayStation» ve «PS5» sahiplerinin ticari markalarıdır."""))
+            .setPositiveButton(L.s("تم", "Tamam"), null).show().focusMain()
     }
 
     /** empty ad tile: how to advertise, with a QR that opens an email on the phone */

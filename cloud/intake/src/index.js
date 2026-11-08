@@ -10,6 +10,7 @@ export default {
     try {
       if (req.method === "POST" && url.pathname === "/submit") return await submit(req, env);
       if (url.pathname === "/privacy") return privacy(url.searchParams.get("lang") === "tr");
+      if (url.pathname === "/terms") return terms(url.searchParams.get("lang") === "tr");
       if (req.method === "POST" && url.pathname === "/trial") return await trial(req, env);
       if (req.method === "POST" && url.pathname === "/health") return await health(req, env);
       if (url.pathname === "/alerts") {
@@ -379,5 +380,41 @@ function privacyTr() {
 <h2>IP adresi ve güvenlik</h2><p>IP adresi yalnızca anlık olarak günlük sınırlar ve kötüye kullanımı önlemek için kullanılır ve her gün silinir. Tüm bağlantılar şifrelidir (HTTPS).</p>
 <h2>Veri silme ve iletişim</h2><p>Verilerinizin silinmesi ya da her türlü soru için: <a href="mailto:hello@taketore.com">hello@taketore.com</a>. Uygulama 13 yaşından küçük çocuklara yönelik değildir.</p>
 </body></html>`;
+  return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+}
+
+
+/** Terms of use, Arabic and Turkish */
+function terms(tr) {
+  const T = tr ? {
+    lang: "tr", dir: "ltr", title: "Tercüman - Kullanım Şartları", h: "Tercüman Kullanım Şartları",
+    body: `<p>Son güncelleme: 8 Kasım 2026. Tercüman'ı (Taketore) kullanarak bu şartları kabul etmiş olursun.</p>
+<h2>1. Hizmet</h2><p>Tercüman, kendi PlayStation 5'ini kendi ev ağındaki Android TV'de oynatmanı ve oyunlardaki İngilizce metinlerin ekranda çevirisini görmeni sağlar. Çeviriler otomatik üretilir; hata içerebilir.</p>
+<h2>2. Bağımsızlık</h2><p>Tercüman bağımsız bir uygulamadır; Sony Interactive Entertainment ya da oyun yayıncılarıyla bağlantılı değildir ve onlar tarafından onaylanmamıştır. «PlayStation», «PS5» ve oyun adları sahiplerinin ticari markalarıdır.</p>
+<h2>3. Senin sorumlulukların</h2><p>Uygulamayı yalnızca sana ait cihaz ve hesaplarla, kişisel ve ticari olmayan amaçla kullanırsın. PlayStation Network ve oyunların kendi kullanım şartlarına uymak senin sorumluluğundadır.</p>
+<h2>4. Ücretsiz deneme ve ömür boyu lisans</h2><p>3 saatlik gerçek oyun süresi ücretsizdir. Ardından tek seferlik ödeme, bu uygulamayı ve güncellemelerini, uygulama yayında kaldığı sürece kullanma lisansı verir; abonelik değildir. Çevrim içi çeviri kütüphanesi ücretsiz bir ek hizmettir ve kesintisiz olacağı garanti edilmez; cihaz üzerindeki çeviri her durumda çalışmaya devam eder.</p>
+<h2>5. Ödeme ve iade</h2><p>Ödemeler ve iadeler tamamen Google Play üzerinden, Google Play politikalarına göre yapılır. İade edilen satın alma, uygulamadaki kilidi kaldırır.</p>
+<h2>6. Reklamlar</h2><p>Ana ekrandaki reklam alanları, onayımızdan geçen reklamverenlere aittir. Reklam içeriğinden reklamveren sorumludur.</p>
+<h2>7. Fikrî mülkiyet ve kaldırma talepleri</h2><p>Oyun metinleri sahiplerine aittir. Bir çevirinin haklarını ihlal ettiğini düşünüyorsan <a href="mailto:hello@taketore.com">hello@taketore.com</a> adresine yaz; makul sürede kaldırırız.</p>
+<h2>8. Açık kaynak</h2><p>Uygulama, GNU AGPL sürüm 3 lisanslı Chiaki projesine dayanır. Kaynak kodu: <a href="https://github.com/fifn1/arribha">github.com/fifn1/arribha</a>.</p>
+<h2>9. Garanti ve sorumluluk</h2><p>Uygulama «olduğu gibi», hiçbir garanti olmaksızın sunulur. Yasaların izin verdiği ölçüde, kullanımından doğan dolaylı zararlardan sorumlu değiliz.</p>
+<h2>10. Değişiklikler ve iletişim</h2><p>Bu şartları güncelleyebiliriz; güncel hâli bu sayfadadır. Sorular için: <a href="mailto:hello@taketore.com">hello@taketore.com</a>.</p>`
+  } : {
+    lang: "ar", dir: "rtl", title: "ترجمان - شروط الاستخدام", h: "شروط استخدام ترجمان",
+    body: `<p>آخر تحديث: 8 نوفمبر 2026. باستخدامك ترجمان (من Taketore) فأنت توافق على هذه الشروط.</p>
+<h2>1. الخدمة</h2><p>ترجمان يتيح لك تشغيل جهاز البلايستيشن 5 الخاص بك على تلفزيون Android TV داخل شبكة منزلك، وعرض ترجمة للنصوص الإنجليزية في الألعاب على الشاشة. الترجمات تُنتج آليًا وقد تحتوي أخطاء.</p>
+<h2>2. الاستقلالية</h2><p>ترجمان تطبيق مستقل، غير تابع لشركة Sony Interactive Entertainment ولا لناشري الألعاب ولا معتمد منهم. «PlayStation» و«PS5» وأسماء الألعاب علامات تجارية لأصحابها.</p>
+<h2>3. مسؤولياتك</h2><p>تستخدم التطبيق بأجهزتك وحساباتك أنت فقط، لاستخدام شخصي غير تجاري. الالتزام بشروط شبكة PlayStation وشروط الألعاب مسؤوليتك.</p>
+<h2>4. التجربة المجانية والترخيص مدى الحياة</h2><p>أول 3 ساعات لعب فعلي مجانية. بعدها الدفعة الواحدة تمنحك ترخيصًا لاستخدام هذا التطبيق وتحديثاته طوال فترة توفّره، وليست اشتراكًا. مكتبة الترجمة عبر الإنترنت خدمة إضافية مجانية لا نضمن استمرارها دون انقطاع، والترجمة داخل الجهاز تستمر بالعمل في كل الأحوال.</p>
+<h2>5. الدفع والاسترداد</h2><p>الدفع والاسترداد يتمان بالكامل عن طريق Google Play ووفق سياساتها. الشراء المسترد يُلغي فتح التطبيق.</p>
+<h2>6. الإعلانات</h2><p>مساحات الإعلان في الشاشة الرئيسية لمعلنين نوافق عليهم، والمعلن مسؤول عن محتوى إعلانه.</p>
+<h2>7. الملكية الفكرية وطلبات الإزالة</h2><p>نصوص الألعاب ملك لأصحابها. إذا رأيت أن ترجمةً ما تمس حقوقك، راسلنا على <a href="mailto:hello@taketore.com">hello@taketore.com</a> ونزيلها خلال مدة معقولة.</p>
+<h2>8. المصدر المفتوح</h2><p>التطبيق مبني على مشروع Chiaki المرخّص بموجب GNU AGPL الإصدار 3. الكود المصدري: <a href="https://github.com/fifn1/arribha">github.com/fifn1/arribha</a>.</p>
+<h2>9. الضمان والمسؤولية</h2><p>التطبيق مقدّم «كما هو» بدون أي ضمان. وفي الحدود التي يسمح بها النظام، لا نتحمل الأضرار غير المباشرة الناتجة عن استخدامه.</p>
+<h2>10. التعديلات والتواصل</h2><p>قد نحدّث هذه الشروط، والنسخة الحالية دائمًا في هذه الصفحة. يخضع ما لم يُنظم هنا لأنظمة المملكة العربية السعودية. للتواصل: <a href="mailto:hello@taketore.com">hello@taketore.com</a>.</p>`
+  };
+  const html = `<!doctype html><html lang="${T.lang}" dir="${T.dir}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${T.title}</title><style>body{font-family:system-ui,Tahoma,sans-serif;max-width:720px;margin:auto;padding:24px;line-height:1.9;color:#1b2333;background:#fff}h1{font-size:28px}h2{font-size:19px;margin-top:28px}</style></head><body>
+<h1>${T.h}</h1>${T.body}</body></html>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
 }

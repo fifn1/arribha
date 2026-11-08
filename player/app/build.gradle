@@ -8,8 +8,8 @@ android {
     defaultConfig {
         applicationId 'com.abubadr.arribha'
         minSdk 24
-        targetSdk 35
-        versionCode 10
+        targetSdk 36
+        versionCode 11
         versionName '2.0.0'
         ndk { abiFilters 'armeabi-v7a', 'arm64-v8a' }
     }
@@ -27,6 +27,14 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     packaging { jniLibs { useLegacyPackaging = true } }
+    buildFeatures { buildConfig true }
+    // play: the Google Play build (updates come from Play only, no install permission)
+    // direct: the APK installed by hand, which updates itself from GitHub releases
+    flavorDimensions = ['dist']
+    productFlavors {
+        play { dimension 'dist'; buildConfigField 'boolean', 'SELF_UPDATE', 'false' }
+        direct { dimension 'dist'; buildConfigField 'boolean', 'SELF_UPDATE', 'true' }
+    }
 }
 dependencies {
     implementation 'com.google.mlkit:text-recognition:16.0.1'
