@@ -75,7 +75,12 @@ object Licensing {
     /** purchases made earlier (other TV, reinstall) come back automatically */
     private fun restore() {
         billing?.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build()) { r, list ->
-            if (r.responseCode == BillingClient.BillingResponseCode.OK) list.forEach(::handle)
+            if (r.responseCode != BillingClient.BillingResponseCode.OK) return@queryPurchasesAsync   // offline: keep what we know
+            list.forEach(::handle)
+            // Google no longer lists the purchase (refunded or cancelled): it is not owned any more
+            if (owned && list.none { PRODUCT in it.products && it.purchaseState == Purchase.PurchaseState.PURCHASED }) {
+                owned = false; prefs.edit().putBoolean("owned", false).apply(); onChange?.invoke()
+            }
         }
     }
 
