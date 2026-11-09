@@ -503,11 +503,12 @@ class TranslateEngine(
         val w = small.width; val h = small.height
         val px = IntArray(w * h); small.getPixels(px, 0, w, 0, 0, w, h)
         for (y in 0 until h) for (x in 0 until w) {
-            val fx = (min(x, w - 1 - x) / (w * 0.22f)).coerceIn(0f, 1f)
-            val fy = (min(y, h - 1 - y) / (h * 0.32f)).coerceIn(0f, 1f)
-            val t = min(fx, fy); val a = t * t * (3 - 2 * t) * 0.93f
+            // full cover over the whole English (even two lines), fading only in the outer margin
+            val fx = (min(x, w - 1 - x) / (w * 0.10f)).coerceIn(0f, 1f)
+            val fy = (min(y, h - 1 - y) / (h * 0.13f)).coerceIn(0f, 1f)
+            val t = min(fx, fy); val a = t * t * (3 - 2 * t) * 0.96f
             val c = px[y * w + x]
-            val r = ((c shr 16 and 255) * 0.55f).toInt(); val g = ((c shr 8 and 255) * 0.55f).toInt(); val bl = ((c and 255) * 0.55f).toInt()
+            val r = ((c shr 16 and 255) * 0.5f).toInt(); val g = ((c shr 8 and 255) * 0.5f).toInt(); val bl = ((c and 255) * 0.5f).toInt()
             px[y * w + x] = Color.argb((a * 255).toInt(), r, g, bl)
         }
         val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888); out.setPixels(px, 0, w, 0, 0, w, h)
