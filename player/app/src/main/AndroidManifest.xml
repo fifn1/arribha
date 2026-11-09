@@ -30,6 +30,7 @@
         </provider>
         <activity android:name=".LanguageActivity" android:exported="false" android:screenOrientation="landscape" />
         <activity android:name=".WelcomeActivity" android:exported="false" android:screenOrientation="landscape" />
+        <activity android:name=".DemoActivity" android:exported="false" android:screenOrientation="landscape" />
         <activity android:name=".PsnLoginActivity" android:exported="false" android:screenOrientation="landscape" />
         <activity android:name=".StreamActivity" android:exported="false"
             android:screenOrientation="landscape"

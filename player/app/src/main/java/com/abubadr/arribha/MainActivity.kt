@@ -147,6 +147,12 @@ class MainActivity : Activity() {
         linkBtn.setOnClickListener { link() }
         linkBox.addView(linkBtn, LinearLayout.LayoutParams(420, -2).apply { topMargin = 20; gravity = Gravity.CENTER_HORIZONTAL })
         linkStatus = text("", 17f, Color.rgb(250, 205, 95)).also { linkBox.addView(it, lp(10)) }
+        // no PlayStation at hand (or a store reviewer): a short demo of the translation
+        linkBox.addView(text(L.s("ما عندك بلايستيشن الحين؟ شوف عرض تجريبي", "PlayStation yanında değil mi? Deneme gösterimini izle"), 15f, Color.rgb(120, 136, 168)).apply {
+            isFocusable = true; setPadding(24, 10, 24, 10)
+            setOnClickListener { startActivity(Intent(this@MainActivity, DemoActivity::class.java)) }
+            setOnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Color.WHITE else Color.rgb(120, 136, 168)) }
+        }, lp(6))
         col.addView(linkBox)
 
         // --- quick settings: three small chips ---
